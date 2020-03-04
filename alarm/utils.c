@@ -56,6 +56,7 @@ int rmrSend(void *mrc, int mtype, void *payload, int payload_len, char *meid) {
         }
 
         if (sbuf->state == RMR_OK) {
+            fprintf(stderr, "RMR message sent successfully!\n");
             break;
         }
     } while(sbuf->state == RMR_ERR_RETRY && ++retry_count < 10);
