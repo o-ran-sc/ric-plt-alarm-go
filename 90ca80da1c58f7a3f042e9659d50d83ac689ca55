@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "57a51df8_02500285",
+        "filename": "lib/alarm.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2020-03-04T12:37:46Z",
+      "side": 1,
+      "message": "Matter of taste.. do we need to repeat Alarm string in method names of a RICAlarm receiver?\nRaiseAlarm(a Alarm) --\u003e Raise(a Alarm)\nClearAlarm(a Alarm) --\u003e Clear(a Alarm)\n...",
+      "revId": "90ca80da1c58f7a3f042e9659d50d83ac689ca55",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b11e9a0b_2237b2f8",
+        "filename": "lib/alarm_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2020-03-04T12:37:46Z",
+      "side": 1,
+      "message": "alarm --\u003e alarm_test\nIn order to test alarm package better from its user (API) perspective.",
+      "revId": "90ca80da1c58f7a3f042e9659d50d83ac689ca55",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
