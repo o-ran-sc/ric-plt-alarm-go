@@ -81,7 +81,6 @@ func TestAlarmSendSuccess(t *testing.T) {
 	go alarmer.ReceiveMessage(consumer)
 	time.Sleep(time.Duration(1 * time.Second))
 
-	m := alarmer.NewAlarmMessage(a, alarm.AlarmActionRaise)
-	err := alarmer.SendMessage(m)
+	err := alarmer.Raise(a)
 	assert.Nil(t, err, "send failed")
 }

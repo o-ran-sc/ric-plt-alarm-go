@@ -48,7 +48,7 @@ const (
 	SeverityMajor       Severity = "MAJOR"
 	SeverityMinor       Severity = "MINOR"
 	SeverityWarning     Severity = "WARNING"
-	SeverityNormal      Severity = "CLEARED"
+	SeverityCleared     Severity = "CLEARED"
 	SeverityDefault     Severity = "DEFAULT"
 )
 
@@ -69,7 +69,6 @@ type AlarmAction string
 const (
 	AlarmActionRaise    AlarmAction = "RAISE"
 	AlarmActionClear    AlarmAction = "CLEAR"
-	AlarmActionReraise  AlarmAction = "RERAISE"
 	AlarmActionClearAll AlarmAction = "CLEARALL"
 )
 
@@ -86,6 +85,11 @@ type RICAlarm struct {
 	rmrCtx unsafe.Pointer
 	mutex  sync.Mutex
 }
+
+const (
+	RIC_ALARM_UPDATE = 13111
+	RIC_ALARM_QUERY  = 13112
+)
 
 // InitAlarm is the init routine which returns a new alarm instance.
 // The MO and APP identities are given as a parameters.
@@ -128,7 +132,7 @@ func (r *RICAlarm) Raise(a Alarm) error {
 	defer r.mutex.Unlock()
 
 	m := r.NewAlarmMessage(a, AlarmActionRaise)
-	return r.SendMessage(m)
+	return r.sendAlarmUpdateReq(m)
 }
 
 // Clear a RIC alarm
@@ -137,7 +141,7 @@ func (r *RICAlarm) Clear(a Alarm) error {
 	defer r.mutex.Unlock()
 
 	m := r.NewAlarmMessage(a, AlarmActionClear)
-	return r.SendMessage(m)
+	return r.sendAlarmUpdateReq(m)
 }
 
 // Re-raise a RIC alarm
@@ -145,8 +149,12 @@ func (r *RICAlarm) Reraise(a Alarm) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	m := r.NewAlarmMessage(a, AlarmActionReraise)
-	return r.SendMessage(m)
+	m := r.NewAlarmMessage(a, AlarmActionClear)
+	if err := r.sendAlarmUpdateReq(m); err != nil {
+		return errors.New(fmt.Sprintf("Reraise failed: %v", err))
+	}
+
+	return r.sendAlarmUpdateReq(r.NewAlarmMessage(a, AlarmActionRaise))
 }
 
 // Clear all alarms raised by the application
@@ -157,17 +165,16 @@ func (r *RICAlarm) ClearAll() error {
 	a := r.NewAlarm(0, SeverityDefault, "", "")
 	m := r.NewAlarmMessage(a, AlarmActionClearAll)
 
-	return r.SendMessage(m)
+	return r.sendAlarmUpdateReq(m)
 }
 
-// Internal functions
 func (r *RICAlarm) AlarmString(a AlarmMessage) string {
 	s := "MOId=%s AppId=%s SP=%d severity=%s IA=%s"
 	return fmt.Sprintf(s, a.ManagedObjectId, a.ApplicationId, a.SpecificProblem, a.PerceivedSeverity, a.IdentifyingInfo)
 }
 
-func (r *RICAlarm) SendMessage(a AlarmMessage) error {
-	log.Println("Sending alarm:", r.AlarmString(a))
+func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
+	log.Println("Sending alarm: ", r.AlarmString(a))
 
 	payload, err := json.Marshal(a)
 	if err != nil {
@@ -179,7 +186,8 @@ func (r *RICAlarm) SendMessage(a AlarmMessage) error {
 	meid := C.CString("ric")
 	defer C.free(unsafe.Pointer(meid))
 
-	if state := C.rmrSend(r.rmrCtx, 1234, datap, C.int(len(payload)), meid); state != C.RMR_OK {
+	if state := C.rmrSend(r.rmrCtx, RIC_ALARM_UPDATE, datap, C.int(len(payload)), meid); state != C.RMR_OK {
+		log.Println("rmrSend failed with error: ", state)
 		return errors.New(fmt.Sprintf("rmrSend failed with error: %d", state))
 	}
 	return nil
