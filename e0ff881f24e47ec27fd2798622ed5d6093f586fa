@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "96c48c99_0e74bc47",
+        "filename": "adapter/cmd/adapter.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2020-03-05T07:43:42Z",
+      "side": 1,
+      "message": "2019 --\u003e 2020\nComment applies to all the copyright statements under this review.",
+      "revId": "e0ff881f24e47ec27fd2798622ed5d6093f586fa",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0984a142_c49fb3d1",
+        "filename": "alarm/alarm.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2020-03-05T07:43:42Z",
+      "side": 1,
+      "message": "If below functions are only for internal usage only, should these be then moved to new internal alarm package under internal sub-folder?\nFor me it is ok to leave this as it is now and do this possible change as its own merge reguest.",
+      "revId": "e0ff881f24e47ec27fd2798622ed5d6093f586fa",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
