@@ -65,17 +65,21 @@ var Hash string
 
 // Main function
 func main() {
-	NewAlarmAdapter(0).Run(true)
+	NewAlarmAdapter("", 0).Run(true)
 }
 
-func NewAlarmAdapter(alertInterval int) *AlarmAdapter {
+func NewAlarmAdapter(amHost string, alertInterval int) *AlarmAdapter {
 	if alertInterval == 0 {
 		alertInterval = viper.GetInt("promAlertManager.alertInterval")
 	}
 
+	if amHost == "" {
+		amHost = viper.GetString("promAlertManager.address")
+	}
+
 	return &AlarmAdapter{
 		rmrReady:      false,
-		amHost:        viper.GetString("promAlertManager.address"),
+		amHost:        amHost,
 		amBaseUrl:     viper.GetString("promAlertManager.baseUrl"),
 		amSchemes:     []string{viper.GetString("promAlertManager.schemes")},
 		alertInterval: alertInterval,
@@ -87,6 +91,9 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmAdapter", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
+
+	app.Resource.InjectRoute("/ric/v1/alarm", a.GetActiveAlarms, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarm", a.GenerateAlarm, "POST")
 
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()

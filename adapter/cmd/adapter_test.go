@@ -45,7 +45,7 @@ var eventChan chan string
 
 // Test cases
 func TestMain(M *testing.M) {
-	alarmAdapter = NewAlarmAdapter(500)
+	alarmAdapter = NewAlarmAdapter("localhost:9093", 500)
 	go alarmAdapter.Run(false)
 	time.Sleep(time.Duration(2) * time.Second)
 
