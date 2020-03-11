@@ -32,9 +32,6 @@ ARG RMRVERSION=3.2.4
 RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${RMRVERSION}_amd64.deb/download.deb && dpkg -i rmr_${RMRVERSION}_amd64.deb && rm -rf rmr_${RMRVERSION}_amd64.deb
 RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${RMRVERSION}_amd64.deb/download.deb && dpkg -i rmr-dev_${RMRVERSION}_amd64.deb && rm -rf rmr-dev_${RMRVERSION}_amd64.deb
 
-ENV GOLANG_VERSION 1.12.1
-RUN wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
-     && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH /go
 

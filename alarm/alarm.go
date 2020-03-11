@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 	"unsafe"
 )
@@ -37,59 +36,6 @@ import (
 #include "utils.h"
 */
 import "C"
-
-// Severity for alarms
-type Severity string
-
-// Possible values for Severity
-const (
-	SeverityUnspecified Severity = "UNSPECIFIED"
-	SeverityCritical    Severity = "CRITICAL"
-	SeverityMajor       Severity = "MAJOR"
-	SeverityMinor       Severity = "MINOR"
-	SeverityWarning     Severity = "WARNING"
-	SeverityCleared     Severity = "CLEARED"
-	SeverityDefault     Severity = "DEFAULT"
-)
-
-// Alarm object - see README for more information
-type Alarm struct {
-	ManagedObjectId   string   `json:"managedObjectId"`
-	ApplicationId     string   `json:"applicationId"`
-	SpecificProblem   int      `json:"specificProblem"`
-	PerceivedSeverity Severity `json:"perceivedSeverity"`
-	AdditionalInfo    string   `json:"additionalInfo"`
-	IdentifyingInfo   string   `json:"identifyingInfo"`
-}
-
-// Alarm actions
-type AlarmAction string
-
-// Possible values for alarm actions
-const (
-	AlarmActionRaise    AlarmAction = "RAISE"
-	AlarmActionClear    AlarmAction = "CLEAR"
-	AlarmActionClearAll AlarmAction = "CLEARALL"
-)
-
-type AlarmMessage struct {
-	Alarm
-	AlarmAction
-	AlarmTime int64
-}
-
-// RICAlarm is an alarm instance
-type RICAlarm struct {
-	moId   string
-	appId  string
-	rmrCtx unsafe.Pointer
-	mutex  sync.Mutex
-}
-
-const (
-	RIC_ALARM_UPDATE = 13111
-	RIC_ALARM_QUERY  = 13112
-)
 
 // InitAlarm is the init routine which returns a new alarm instance.
 // The MO and APP identities are given as a parameters.

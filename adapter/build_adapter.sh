@@ -36,8 +36,9 @@ export RMR_SEED_RT=../config/uta_rtg.rt
 GO111MODULE=on GO_ENABLED=0 GOOS=linux
 
 # Build
-go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/adapter.go
+go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/*.go
 
 # Run UT
-go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
-cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.rt go test . -v -coverprofile cover.out
+cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.r go-acc ./
+#go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
+#cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.rt go test . -v -coverprofile cover.out

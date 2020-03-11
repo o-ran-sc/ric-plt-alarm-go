@@ -25,24 +25,55 @@ import (
 	"net/http"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
+var alarmClient *alarm.RICAlarm
+
 func (a *AlarmAdapter) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info("GetActiveAlarms: request received!")
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response, _ := json.Marshal(a.activeAlarms)
 	w.Write(response)
 }
 
-func (a *AlarmAdapter) GenerateAlarm(w http.ResponseWriter, r *http.Request) {
+func (a *AlarmAdapter) RaiseAlarm(w http.ResponseWriter, r *http.Request) {
+	a.doAction(w, r, true)
+}
+
+func (a *AlarmAdapter) ClearAlarm(w http.ResponseWriter, r *http.Request) {
+	a.doAction(w, r, false)
+}
+
+func (a *AlarmAdapter) doAction(w http.ResponseWriter, r *http.Request, raiseAlarm bool) {
+	app.Logger.Info("doAction: request received!")
+
 	if r.Body == nil {
 		return
 	}
 	defer r.Body.Close()
 
-	var alarmData alarm.Alarm
-	if err := json.NewDecoder(r.Body).Decode(&alarmData); err == nil {
-		a.UpdateActiveAlarms(alarmData)
-		a.PostAlert(a.GenerateAlertLabels(alarmData))
+	var d alarm.Alarm
+	err := json.NewDecoder(r.Body).Decode(&d)
+	if err != nil {
+		app.Logger.Error("json.NewDecoder failed: %v", err)
+		return
+	}
+
+	if alarmClient == nil {
+		alarmClient, err = alarm.InitAlarm("RIC", "UEEC")
+		if err != nil {
+			app.Logger.Error("json.NewDecoder failed: %v", err)
+			return
+		}
+	}
+
+	alarmData := alarmClient.NewAlarm(d.SpecificProblem, d.PerceivedSeverity, d.AdditionalInfo, d.IdentifyingInfo)
+	if raiseAlarm {
+		alarmClient.Raise(alarmData)
+	} else {
+		alarmClient.Clear(alarmData)
 	}
 }

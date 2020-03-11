@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"sync"
 
 	clientruntime "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -42,22 +43,8 @@ type AlarmAdapter struct {
 	amSchemes     []string
 	alertInterval int
 	activeAlarms  []alarm.Alarm
+	mutex  		  sync.Mutex
 	rmrReady      bool
-}
-
-// Temp alarm constants & definitions
-const (
-	RIC_RT_DISTRIBUTION_FAILED     int = 8004
-	CONNECTIVITY_LOST_TO_DBAAS     int = 8005
-	E2_CONNECTIVITY_LOST_TO_GNODEB int = 8006
-	E2_CONNECTIVITY_LOST_TO_ENODEB int = 8007
-)
-
-var alarmDefinitions = map[int]string{
-	RIC_RT_DISTRIBUTION_FAILED:     "RIC ROUTING TABLE DISTRIBUTION FAILED",
-	CONNECTIVITY_LOST_TO_DBAAS:     "CONNECTIVITY LOST TO DBAAS",
-	E2_CONNECTIVITY_LOST_TO_GNODEB: "E2 CONNECTIVITY LOST TO G-NODEB",
-	E2_CONNECTIVITY_LOST_TO_ENODEB: "E2 CONNECTIVITY LOST TO E-NODEB",
 }
 
 var Version string
@@ -92,8 +79,9 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
 
-	app.Resource.InjectRoute("/ric/v1/alarm", a.GetActiveAlarms, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarm", a.GenerateAlarm, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.GetActiveAlarms, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
 
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()
@@ -104,10 +92,12 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 func (a *AlarmAdapter) StartAlertTimer() {
 	tick := time.Tick(time.Duration(a.alertInterval) * time.Millisecond)
 	for range tick {
+		a.mutex.Lock()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
 			a.PostAlert(a.GenerateAlertLabels(m))
 		}
+		a.mutex.Unlock()
 	}
 }
 
@@ -133,7 +123,7 @@ func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 	}
 	app.Logger.Info("newAlarm: %v", m)
 
-	if _, ok := alarmDefinitions[m.Alarm.SpecificProblem]; !ok {
+	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, ignoring ...", m.Alarm.SpecificProblem)
 		return nil, nil
 	}
@@ -176,18 +166,25 @@ func (a *AlarmAdapter) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 }
 
 func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.Alarm, i int) []alarm.Alarm {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
 	copy(alarms[i:], alarms[i+1:])
 	return alarms[:len(alarms)-1]
 }
 
 func (a *AlarmAdapter) UpdateActiveAlarms(newAlarm alarm.Alarm) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
 	// For now just keep the active alarms in-memory. Use SDL later
 	a.activeAlarms = append(a.activeAlarms, newAlarm)
 }
 
 func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm) (models.LabelSet, models.LabelSet) {
+	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
-		"alertname":   alarmDefinitions[newAlarm.SpecificProblem],
+		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
 		"service":     fmt.Sprintf("%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
 		"system_name": "RIC",
@@ -195,6 +192,8 @@ func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm) (models.LabelSe
 	amAnnotations := models.LabelSet{
 		"description":     newAlarm.IdentifyingInfo,
 		"additional_info": newAlarm.AdditionalInfo,
+		"summary":         alarmDef.EventType,
+		"instructions":    alarmDef.OperationInstructions,
 	}
 
 	return amLabels, amAnnotations
@@ -216,7 +215,11 @@ func (a *AlarmAdapter) PostAlert(amLabels, amAnnotations models.LabelSet) (*aler
 	alertParams := alert.NewPostAlertsParams().WithAlerts(models.PostableAlerts{pa})
 
 	app.Logger.Info("Posting alerts: labels: %v, annotations: %v", amLabels, amAnnotations)
-	return a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
+	ok, err := a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
+	if err != nil {
+		app.Logger.Error("Posting alerts to '%s/%s' failed with error: %v", a.amHost, a.amBaseUrl, err)
+	}
+	return ok, err
 }
 
 func (a *AlarmAdapter) StatusCB() bool {
