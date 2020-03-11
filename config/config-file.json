@@ -14,7 +14,7 @@
         "numWorkers": 1
     },
     "promAlertManager": {
-        "address": "service-ricplt-alertmanager-http:9093",
+        "address": "elfkp-prometheus-alertmanager:9093",
         "baseUrl": "/api/v2",
         "schemes": "http",
         "alertInterval": 30000

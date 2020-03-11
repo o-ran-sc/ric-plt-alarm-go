@@ -25,9 +25,12 @@ import (
 	"net/http"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
 func (a *AlarmAdapter) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info("GetActiveAlarms: request received!")
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response, _ := json.Marshal(a.activeAlarms)
@@ -35,6 +38,8 @@ func (a *AlarmAdapter) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *AlarmAdapter) GenerateAlarm(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info("GenerateAlarm: request received!")
+
 	if r.Body == nil {
 		return
 	}

@@ -64,7 +64,7 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
-	a := alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1, 0)
@@ -75,13 +75,13 @@ func TestAlarmClearedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise the alarm
-	a := alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1, 0)
 
 	// Now Clear the alarm and check alarm is removed
-	a = alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCleared, "Some App data", "eth 0 1")
+	a = alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCleared, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
@@ -93,10 +93,10 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two alarms
-	a := alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
-	b := alarmer.NewAlarm(CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
+	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 
 	VerifyAlarm(t, a, 2, 0)
@@ -108,10 +108,10 @@ func TestMultipleAlarmsClearedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two alarms
-	a := alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
-	b := alarmer.NewAlarm(CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
+	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Clear(b), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
@@ -123,7 +123,7 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two similar/matching alarms ... the second one suppresed
-	a := alarmer.NewAlarm(RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
