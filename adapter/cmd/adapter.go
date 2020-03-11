@@ -45,21 +45,6 @@ type AlarmAdapter struct {
 	rmrReady      bool
 }
 
-// Temp alarm constants & definitions
-const (
-	RIC_RT_DISTRIBUTION_FAILED     int = 8004
-	CONNECTIVITY_LOST_TO_DBAAS     int = 8005
-	E2_CONNECTIVITY_LOST_TO_GNODEB int = 8006
-	E2_CONNECTIVITY_LOST_TO_ENODEB int = 8007
-)
-
-var alarmDefinitions = map[int]string{
-	RIC_RT_DISTRIBUTION_FAILED:     "RIC ROUTING TABLE DISTRIBUTION FAILED",
-	CONNECTIVITY_LOST_TO_DBAAS:     "CONNECTIVITY LOST TO DBAAS",
-	E2_CONNECTIVITY_LOST_TO_GNODEB: "E2 CONNECTIVITY LOST TO G-NODEB",
-	E2_CONNECTIVITY_LOST_TO_ENODEB: "E2 CONNECTIVITY LOST TO E-NODEB",
-}
-
 var Version string
 var Hash string
 
@@ -92,8 +77,9 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
 
-	app.Resource.InjectRoute("/ric/v1/alarm", a.GetActiveAlarms, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarm", a.GenerateAlarm, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.GetActiveAlarms, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
 
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()
@@ -133,7 +119,7 @@ func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 	}
 	app.Logger.Info("newAlarm: %v", m)
 
-	if _, ok := alarmDefinitions[m.Alarm.SpecificProblem]; !ok {
+	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, ignoring ...", m.Alarm.SpecificProblem)
 		return nil, nil
 	}
@@ -186,8 +172,9 @@ func (a *AlarmAdapter) UpdateActiveAlarms(newAlarm alarm.Alarm) {
 }
 
 func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm) (models.LabelSet, models.LabelSet) {
+	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
-		"alertname":   alarmDefinitions[newAlarm.SpecificProblem],
+		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
 		"service":     fmt.Sprintf("%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
 		"system_name": "RIC",
@@ -195,6 +182,8 @@ func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm) (models.LabelSe
 	amAnnotations := models.LabelSet{
 		"description":     newAlarm.IdentifyingInfo,
 		"additional_info": newAlarm.AdditionalInfo,
+		"summary":         alarmDef.EventType,
+		"instructions":    alarmDef.OperationInstructions,
 	}
 
 	return amLabels, amAnnotations
@@ -216,7 +205,11 @@ func (a *AlarmAdapter) PostAlert(amLabels, amAnnotations models.LabelSet) (*aler
 	alertParams := alert.NewPostAlertsParams().WithAlerts(models.PostableAlerts{pa})
 
 	app.Logger.Info("Posting alerts: labels: %v, annotations: %v", amLabels, amAnnotations)
-	return a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
+	ok, err := a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
+	if err != nil {
+		app.Logger.Error("Posting alerts to '%s/%s' failed with error: %v", a.amHost, a.amBaseUrl, err)
+	}
+	return ok, err
 }
 
 func (a *AlarmAdapter) StatusCB() bool {
