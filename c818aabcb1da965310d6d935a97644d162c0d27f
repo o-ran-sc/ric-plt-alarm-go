@@ -1,0 +1,159 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "84a8b936_8170daa5",
+        "filename": "adapter/Dockerfile",
+        "patchSetId": 3
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "if you would like to reduce the size of your final image, you might use a different base.  Go lets you use a \"scratch\" base image since you are adding all the required binaries; you don\u0027t need an interpreter (like Java projects need), you don\u0027t need even a shell.\n\n   https://hub.docker.com/_/scratch\n\nOf course excessive optimization is a waste of time right now.  Just consider it for later.",
+      "range": {
+        "startLine": 34,
+        "startChar": 5,
+        "endLine": 34,
+        "endChar": 17
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fa572d61_8834db85",
+        "filename": "adapter/Dockerfile",
+        "patchSetId": 3
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "I don\u0027t think you need to copy over the include files",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 8
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d434dca_05e78ea1",
+        "filename": "adapter/Dockerfile",
+        "patchSetId": 3
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "May want to make this the entrypoint, but that\u0027s not strictly required",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 2
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9618add2_acf70ec7",
+        "filename": "adapter/build_adapter_ubuntu.sh",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "please add the usual shebang line at the top:\n\n     #!/bin/sh -e\n\nor\n\n    #!/bin/bash\n\nwhatever you need it to be",
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e7094291_a093843e",
+        "filename": "adapter/build_adapter_ubuntu.sh",
+        "patchSetId": 3
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "I don\u0027t think using only absolute paths is needed nor is it the right approach.  I think it\u0027s totally ok for the script to use relative paths and assume it has been launched with $CWD of the git/gerrit repository, I just would like the script to CHECK that it finds the expected subdirectories when it starts, and error out immediately if not. Sorry if I didn\u0027t make that clear before.",
+      "range": {
+        "startLine": 32,
+        "startChar": 0,
+        "endLine": 32,
+        "endChar": 2
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e4056044_69aa6643",
+        "filename": "adapter/build_adapter_ubuntu.sh",
+        "patchSetId": 3
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "Is there still a dependency on nng?  If not pls remove",
+      "range": {
+        "startLine": 34,
+        "startChar": 19,
+        "endLine": 34,
+        "endChar": 22
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "80ff5e28_013e98f1",
+        "filename": "adapter/build_adapter_ubuntu.sh",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:34:51Z",
+      "side": 1,
+      "message": "what format of coverage is this?  I can check if Sonar scanner understands it",
+      "range": {
+        "startLine": 61,
+        "startChar": 83,
+        "endLine": 61,
+        "endChar": 92
+      },
+      "revId": "c818aabcb1da965310d6d935a97644d162c0d27f",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
