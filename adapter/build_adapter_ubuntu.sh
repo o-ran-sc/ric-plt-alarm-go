@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #==================================================================================
 #   Copyright (c) 2020 AT&T Intellectual Property.
 #   Copyright (c) 2020 Nokia
@@ -15,30 +17,50 @@
 #   limitations under the License.
 #==================================================================================
 
-set -e
-set -x
+set -eux
+
+echo "--> build_adapter_ubuntu.sh starts"
+
+# Install RMR from deb packages at packagecloud.io
+rmr=rmr_3.2.4_amd64.deb
+wget --content-disposition  https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/$rmr/download.deb
+dpkg -i $rmr
+rm $rmr
+rmrdev=rmr-dev_3.2.4_amd64.deb
+wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/$rmrdev/download.deb
+dpkg -i $rmrdev
+rm $rmrdev
+
+# Required to find nng and rmr libs
+export LD_LIBRARY_PATH=/usr/local/lib
+
+# Go install, build, etc
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$PATH
+
+# xApp-framework stuff
+export CFG_FILE=../config/config-file.json
+export RMR_SEED_RT=../config/uta_rtg.rt
+
+GO111MODULE=on GO_ENABLED=0 GOOS=linux
 
 # setup version tag
 if [ -f container-tag.yaml ]
 then
     tag=$(grep "tag:" container-tag.yaml | awk '{print $2}')
 else
-    tag="-"
+    tag="no-tag-found"
 fi
 
 hash=$(git rev-parse --short HEAD || true)
 
-export GOPATH=$HOME/go
-export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-export CFG_FILE=../config/config-file.json
-export RMR_SEED_RT=../config/uta_rtg.rt
-
-GO111MODULE=on GO_ENABLED=0 GOOS=linux
-
 # Build
 go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/*.go
 
-# Run UT
-cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.r go-acc ./
-#go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
-#cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.rt go test . -v -coverprofile cover.out
+# Execute UT and measure coverage for the Alarm Library
+cd ../alarm && RMR_SEED_RT=../config/uta_rtg_lib.rt go test . -v -coverprofile cover.out
+
+# And for the Alarm Adapter
+cd ../adapter && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
+
+echo "--> build_adapter_ubuntu.sh ends"
