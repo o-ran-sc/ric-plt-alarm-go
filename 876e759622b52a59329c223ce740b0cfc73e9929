@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "64d1b3aa_3c5c546b",
+        "filename": "adapter/build_adapter_ubuntu.sh",
+        "patchSetId": 4
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T14:50:34Z",
+      "side": 1,
+      "message": "Please tell me, do you want to assume this whole script is run as root?  In other words, sudo build_adapter_ubuntu.sh ?  I recommend against it; instead I suggest you add apt-get install sudo to your Docker file then extend this to read:\n\n    sudo dpkg -i $rmr\n\nand\n\n    sudo dpkg -i $rmrdev\n\nI tested that approach successfully.",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 4
+      },
+      "revId": "876e759622b52a59329c223ce740b0cfc73e9929",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
