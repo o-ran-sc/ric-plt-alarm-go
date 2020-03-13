@@ -18,51 +18,25 @@
 #   platform project (RICP).
 #==================================================================================
 
-# The CI system creates and publishes the alarm-adapter Docker image
-# from the last step in this multi-stage build and applies
-# a Docker tag from the string in file container-tag.yaml
+FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:4-u18.04-nng as ubuntu-alarmadapter
 
-#FROM golang:1.12.1 as alarmadapter
-FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:3-u18.04-nng as alarmadapter
+# Install utilities
+RUN apt update && apt install -y iputils-ping net-tools curl sudo
 
-RUN apt update && apt install -y iputils-ping net-tools curl
-
-# Install RMr shared library & development header files
-ARG RMRVERSION=3.2.4
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr_${RMRVERSION}_amd64.deb/download.deb && dpkg -i rmr_${RMRVERSION}_amd64.deb && rm -rf rmr_${RMRVERSION}_amd64.deb
-RUN wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/rmr-dev_${RMRVERSION}_amd64.deb/download.deb && dpkg -i rmr-dev_${RMRVERSION}_amd64.deb && rm -rf rmr-dev_${RMRVERSION}_amd64.deb
-
-ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH /go
-
-RUN mkdir -p /go/bin
-RUN cd /go/bin \
-    && wget --quiet https://github.com/go-swagger/go-swagger/releases/download/v0.19.0/swagger_linux_amd64 \
-    && mv swagger_linux_amd64 swagger \
-    && chmod +x swagger
-
+# Install dependencies, compile and test the module
 RUN mkdir -p /go/src/alarm-adapter
-WORKDIR "/go/src/alarm-adapter"
-COPY go.sum .
-COPY go.mod .
-
-RUN go mod download
-
 COPY . /go/src/alarm-adapter
+
 WORKDIR "/go/src/alarm-adapter/adapter"
+RUN ./build_adapter_ubuntu.sh
 
-# build and run UT
-RUN ldconfig
-RUN ./build_adapter.sh
+# Final, executable and deployable container
+FROM ubuntu:18.04
 
-# Final, executable container
-FROM ubuntu:16.04
-
-COPY --from=alarmadapter /go/src/alarm-adapter/adapter/run_adapter.sh /
-COPY --from=alarmadapter /go/src/alarm-adapter/adapter/alarm-adapter /
-COPY --from=alarmadapter /go/src/alarm-adapter/config/* /
-COPY --from=alarmadapter /usr/local/include /usr/local/include
-COPY --from=alarmadapter /usr/local/lib /usr/local/lib
+COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/adapter/run_adapter.sh /
+COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/adapter/alarm-adapter /
+COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/config/* /
+COPY --from=ubuntu-alarmadapter /usr/local/lib /usr/local/lib
 
 RUN ldconfig
 
