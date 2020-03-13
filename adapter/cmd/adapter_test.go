@@ -67,7 +67,7 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
-	VerifyAlarm(t, a, 1, 0)
+	VerifyAlarm(t, a, 1)
 }
 
 func TestAlarmClearedSucess(t *testing.T) {
@@ -78,7 +78,7 @@ func TestAlarmClearedSucess(t *testing.T) {
 	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
-	VerifyAlarm(t, a, 1, 0)
+	VerifyAlarm(t, a, 1)
 
 	// Now Clear the alarm and check alarm is removed
 	a = alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCleared, "Some App data", "eth 0 1")
@@ -99,8 +99,8 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 
-	VerifyAlarm(t, a, 2, 0)
-	VerifyAlarm(t, b, 2, 1)
+	VerifyAlarm(t, a, 2)
+	VerifyAlarm(t, b, 2)
 }
 
 func TestMultipleAlarmsClearedSucess(t *testing.T) {
@@ -127,7 +127,7 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
-	VerifyAlarm(t, a, 1, 0)
+	VerifyAlarm(t, a, 1)
 }
 
 func TestInvalidAlarms(t *testing.T) {
@@ -151,18 +151,12 @@ func TestStatusCallback(t *testing.T) {
 	assert.Equal(t, true, alarmAdapter.StatusCB())
 }
 
-func VerifyAlarm(t *testing.T, a alarm.Alarm, count, idx int) string {
+func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
-	assert.Equal(t, len(alarmAdapter.activeAlarms), count)
-
-	b := alarmAdapter.activeAlarms[idx]
-	assert.Equal(t, b.ManagedObjectId, a.ManagedObjectId)
-	assert.Equal(t, b.ApplicationId, a.ApplicationId)
-	assert.Equal(t, b.SpecificProblem, a.SpecificProblem)
-	assert.Equal(t, b.PerceivedSeverity, a.PerceivedSeverity)
-	assert.Equal(t, b.AdditionalInfo, a.AdditionalInfo)
-	assert.Equal(t, b.IdentifyingInfo, a.IdentifyingInfo)
+	assert.Equal(t, len(alarmAdapter.activeAlarms), expectedCount)
+	_, ok := alarmAdapter.IsMatchFound(a)
+	assert.True(t, ok)
 
 	return receivedAlert
 }
