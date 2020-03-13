@@ -1,0 +1,182 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "328f2c8a_beef1b34",
+        "filename": "adapter/Dockerfile",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "NNG is already installed in this base image.",
+      "range": {
+        "startLine": 21,
+        "startChar": 59,
+        "endLine": 21,
+        "endChar": 62
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "748216fb_6dac054f",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "Please add \"deb\" or \"ubuntu\" to the file name, bcos it uses Debian install commands, cannot be run on a Centos.",
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76962c37_b17767de",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "should echo exact file name",
+      "range": {
+        "startLine": 20,
+        "startChar": 10,
+        "endLine": 20,
+        "endChar": 31
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1a765131_3375029b",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "Are you still using the NNG version of RMS?  When do you switch to the SI95 version?",
+      "range": {
+        "startLine": 23,
+        "startChar": 0,
+        "endLine": 23,
+        "endChar": 1
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1fc0ba21_4bfdaf9e",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "The docker builder image has NNG.  Perhaps this should check if it exists in /usr/local/lib before repeating?",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e3737694_7503aa67",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "..? relative path?  then this script must check if it\u0027s launched in the correct directory, not just fail with a strange file-not-found message.",
+      "range": {
+        "startLine": 53,
+        "startChar": 15,
+        "endLine": 53,
+        "endChar": 19
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7bb6d954_6d445b1f",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "how about \"no-tag-found\" ?",
+      "range": {
+        "startLine": 63,
+        "startChar": 9,
+        "endLine": 63,
+        "endChar": 10
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "49b0e524_a25a6b09",
+        "filename": "adapter/build_adapter.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000014
+      },
+      "writtenOn": "2020-03-13T12:43:14Z",
+      "side": 1,
+      "message": "see above",
+      "range": {
+        "startLine": 77,
+        "startChar": 10,
+        "endLine": 77,
+        "endChar": 29
+      },
+      "revId": "1ce3877cfd902b713527f7bab143bcb559010dd5",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
