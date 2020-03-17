@@ -10,7 +10,7 @@ Architecture
 
 The **Alarm Library** provides a simple interface for RIC applications (both platform application and xApps) to raise, clear and re-raise. The **Alarm Library** interacts with the **Alarm Adapter** via RMR interface.
 
-The **Alarm Adapter** is reponsible for managing alarm situations in RIC cluster and interfacing with **Northboubd** applications such as **Prometheus AlertManager** to pass the alarms.
+The **Alarm Adapter** is responsible for managing alarm situations in RIC cluster and interfacing with **Northboubd** applications such as **Prometheus AlertManager** to post the alarms as alerts. AlertManager takes care of deduplicating, silencing and inhibition (suppressing) of alerts, and routing them to the VESAgent, which, in turn, takes care of converting alerts to fault and send to ONAP as VES events.
 
 Overview for Alarm Adapter
 --------------------------
@@ -34,11 +34,18 @@ The Alarm object contains following parameters:
  * *AdditionalInfo*: Additional information given by the application
  * *IdentifyingInfo*: Identifying additional information, which is part of alarm identity
 
+ *ManagedObjectId* (mo), *SpecificProblem* (sp), *ApplicationId* (ap) and *IdentifyingInfo* (IdentifyingInfo) make up the identity of the alarm. All parameters must be according to the alarm definition, i.e. all mandatory parameters should be present, and parameters should have correct value type or be from some predefined range. Addressing the same alarm instance in a clear() or reraise() call is done by making sure that all four values are the same is in the original raise / reraise call. 
+
 ## Alarm APIs
 * *Raise*: Raises the alarm instance given as a parameter
 * *Clear*: Clears the alarm instance given as a parameter, if it the alarm active
 * *Reraise*: Attempts to re-raise the alarm instance given as a parameter
 * *ClearAll*: Clears all alarms matching moId and appId given as parameters
+
+## Aux. Alarm APIs
+* *SetManagedObjectId*: Sets the default MOId
+* *SetApplicationId*: Sets the default AppId
+
 
 ## Example
 -------
@@ -67,7 +74,7 @@ func main() {
 	err := alarmer.Reraise(alarm)
 
 	// Clear all alarms raised by the application
-	err := alarmer.Reraise()
+	err := alarmer.ClearAll()
 }
 ```
 

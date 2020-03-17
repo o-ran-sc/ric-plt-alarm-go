@@ -84,3 +84,17 @@ func TestAlarmSendSuccess(t *testing.T) {
 	err := alarmer.Raise(a)
 	assert.Nil(t, err, "send failed")
 }
+
+func TestSetManagedObjectIdSuccess(t *testing.T) {
+	alarmer.SetManagedObjectId("new-pod")
+
+	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	assert.Equal(t, a.ManagedObjectId, "new-pod")
+}
+
+func TestSetApplicationIdSuccess(t *testing.T) {
+	alarmer.SetApplicationId("new-app")
+
+	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	assert.Equal(t, a.ApplicationId, "new-app")
+}
