@@ -1,0 +1,8 @@
+Code-Review+1: Timo Tietavainen <timo.tietavainen@nokia.com>
+Code-Review+2: Abukar Mohamed <abukar.mohamed@nokia.com>
+Verified+1: ORAN Jobbuilder <releng+oran-jobbuilder@linuxfoundation.org>
+Submitted-by: Abukar Mohamed <abukar.mohamed@nokia.com>
+Submitted-at: Tue, 17 Mar 2020 08:35:57 +0000
+Reviewed-on: https://gerrit.o-ran-sc.org/r/c/ric-plt/alarm-go/+/2816
+Project: ric-plt/alarm-go
+Branch: refs/heads/master
