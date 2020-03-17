@@ -72,6 +72,14 @@ func (r *RICAlarm) NewAlarmMessage(a Alarm, alarmAction AlarmAction) AlarmMessag
 	return AlarmMessage{a, alarmAction, alarmTime}
 }
 
+func (r *RICAlarm) SetManagedObjectId(mo string) {
+	r.moId = mo
+}
+
+func (r *RICAlarm) SetApplicationId(app string) {
+	r.appId = app
+}
+
 // Raise a RIC alarm
 func (r *RICAlarm) Raise(a Alarm) error {
 	r.mutex.Lock()

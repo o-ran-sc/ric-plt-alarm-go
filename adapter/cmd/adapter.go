@@ -23,8 +23,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	clientruntime "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -37,14 +37,22 @@ import (
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
+type AlertStatus string
+
+const (
+	AlertStatusActive   = "active"
+	AlertStatusResolved = "resolved"
+)
+
 type AlarmAdapter struct {
 	amHost        string
 	amBaseUrl     string
 	amSchemes     []string
 	alertInterval int
 	activeAlarms  []alarm.Alarm
-	mutex  		  sync.Mutex
+	mutex         sync.Mutex
 	rmrReady      bool
+	postClear     bool
 }
 
 var Version string
@@ -84,6 +92,7 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
 
 	// Start background timer for re-raising alerts
+	a.postClear = sdlcheck
 	go a.StartAlertTimer()
 
 	app.RunWithParams(a, sdlcheck)
@@ -95,7 +104,7 @@ func (a *AlarmAdapter) StartAlertTimer() {
 		a.mutex.Lock()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
-			a.PostAlert(a.GenerateAlertLabels(m))
+			a.PostAlert(a.GenerateAlertLabels(m, AlertStatusActive))
 		}
 		a.mutex.Unlock()
 	}
@@ -140,16 +149,19 @@ func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 		if found {
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx)
 			app.Logger.Info("Active alarm cleared!")
-		} else {
-			app.Logger.Info("No matching alarm found, ignoring!")
+
+			if a.postClear {
+				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved))
+			}
 		}
+		app.Logger.Info("No matching alarm found, ignoring!")
 		return nil, nil
 	}
 
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
 		a.UpdateActiveAlarms(m.Alarm)
-		return a.PostAlert(a.GenerateAlertLabels(m.Alarm))
+		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive))
 	}
 
 	return nil, nil
@@ -181,9 +193,10 @@ func (a *AlarmAdapter) UpdateActiveAlarms(newAlarm alarm.Alarm) {
 	a.activeAlarms = append(a.activeAlarms, newAlarm)
 }
 
-func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm) (models.LabelSet, models.LabelSet) {
+func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus) (models.LabelSet, models.LabelSet) {
 	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
+		"status":      string(status),
 		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
 		"service":     fmt.Sprintf("%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
