@@ -41,17 +41,13 @@ import "C"
 // The MO and APP identities are given as a parameters.
 // The identities are used when raising/clearing alarms, unless provided by the applications.
 func InitAlarm(mo, id string) (*RICAlarm, error) {
-	if ctx := C.rmrInit(); ctx != nil {
-		r := &RICAlarm{
-			moId:   mo,
-			appId:  id,
-			rmrCtx: ctx,
-		}
-
-		return r, nil
+	r := &RICAlarm{
+		moId:  mo,
+		appId: id,
 	}
+	go InitRMR(r)
 
-	return nil, errors.New("rmrInit failed!")
+	return r, nil
 }
 
 // Create a new Alarm instance
@@ -128,8 +124,11 @@ func (r *RICAlarm) AlarmString(a AlarmMessage) string {
 }
 
 func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
-	log.Println("Sending alarm: ", r.AlarmString(a))
+	if r.rmrCtx == nil || !r.rmrReady {
+		return errors.New("RMR no ready yet!")
+	}
 
+	log.Println("Sending alarm: ", r.AlarmString(a))
 	payload, err := json.Marshal(a)
 	if err != nil {
 		return err
@@ -156,4 +155,14 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 		}
 	}
 	return errors.New("rmrRcv failed!")
+}
+
+func InitRMR(r *RICAlarm) error {
+	if ctx := C.rmrInit(); ctx != nil {
+		r.rmrCtx = ctx
+		r.rmrReady = true
+		return nil
+	}
+
+	return errors.New("rmrInit failed!")
 }

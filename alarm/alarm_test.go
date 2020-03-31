@@ -37,6 +37,7 @@ func TestAlarmInitSuccess(t *testing.T) {
 	assert.Equal(t, false, a == nil)
 
 	alarmer = a
+	time.Sleep(time.Duration(5 * time.Second))
 }
 
 func TestAlarmRaiseSuccess(t *testing.T) {
