@@ -30,8 +30,8 @@ void * rmrInit(void) {
 
     // Must have a route table before we can send, so wait til RMR is ready
     while(!rmr_ready(mrc)) {
-        fprintf(stderr, "Waiting for RMR to be ready ...\n");
-        sleep(1);
+        //fprintf(stderr, "Waiting for RMR to be ready ...\n");
+        sleep(2);
     }
     fprintf(stderr, "RMR is ready now ...\n");
 
