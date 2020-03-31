@@ -16,6 +16,8 @@
    limitations under the License.
 ==================================================================================
 */
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <string.h>
 #include "utils.h"
@@ -30,8 +32,8 @@ void * rmrInit(void) {
 
     // Must have a route table before we can send, so wait til RMR is ready
     while(!rmr_ready(mrc)) {
-        fprintf(stderr, "Waiting for RMR to be ready ...\n");
-        sleep(1);
+        //fprintf(stderr, "Waiting for RMR to be ready ...\n");
+        sleep(2);
     }
     fprintf(stderr, "RMR is ready now ...\n");
 
@@ -75,3 +77,4 @@ rmr_mbuf_t * rmrRcv(void *mrc) {
     return NULL;
 }
 
+#endif
