@@ -55,6 +55,7 @@ func TestMain(M *testing.M) {
 	}
 
 	alarmer, _ = alarm.InitAlarm("my-pod", "my-app")
+	time.Sleep(time.Duration(5) * time.Second)
 	eventChan = make(chan string)
 
 	os.Exit(M.Run())
