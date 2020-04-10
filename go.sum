@@ -13,6 +13,8 @@ gerrit.o-ran-sc.org/r/ric-plt/sdlgo.git v0.5.2 h1:UK7awyRKIkVdokWvvkYvazlg3EWIfM
 gerrit.o-ran-sc.org/r/ric-plt/sdlgo.git v0.5.2/go.mod h1:y2WhrCvdLkAKdH+ySdHSOSehACJkTMyZghCGVcqoZzc=
 gerrit.o-ran-sc.org/r/ric-plt/xapp-frame.git v0.0.30 h1:7fGZ2ASjHWs9FVYE8tNBVXpnbu4YKFs43pfh5B8tROc=
 gerrit.o-ran-sc.org/r/ric-plt/xapp-frame.git v0.0.30/go.mod h1:lW3UYpVXwPiOR39t6JgNCE4kdmMSdPVelMPC/Pp9fQM=
+gerrit.o-ran-sc.org/r/ric-plt/xapp-frame.git v0.4.0 h1:FGQY+g9r+xxqNrU2V0VvwcpibAEgRnIAN43+4ULC8qE=
+gerrit.o-ran-sc.org/r/ric-plt/xapp-frame.git v0.4.0/go.mod h1:lW3UYpVXwPiOR39t6JgNCE4kdmMSdPVelMPC/Pp9fQM=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/PuerkitoBio/purell v1.1.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=

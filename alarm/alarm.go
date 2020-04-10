@@ -27,6 +27,8 @@ import (
 	"log"
 	"time"
 	"unsafe"
+	"os"
+	"io/ioutil"
 )
 
 /*
@@ -158,6 +160,22 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 }
 
 func InitRMR(r *RICAlarm) error {
+	// Setup static RT for alarm system
+	endpoint := "service-ricplt-alarmadapter-rmr.ricplt:4560"
+	if r.moId == "my-pod" {
+		endpoint = "localhost:4560"
+	}
+	alarmRT := fmt.Sprintf("newrt|start\nrte|13111|%s\nnewrt|end\n", endpoint)
+	alarmRTFile := "/tmp/alarm.rt"
+
+	if err := ioutil.WriteFile(alarmRTFile, []byte(alarmRT), 0644); err != nil {
+		log.Println("ioutil.WriteFile failed with error: ", err)
+		return err
+	}
+
+	os.Setenv("RMR_SEED_RT", alarmRTFile)
+	os.Setenv("RMR_RTG_SVC", "-1")
+
 	if ctx := C.rmrInit(); ctx != nil {
 		r.rmrCtx = ctx
 		r.rmrReady = true
