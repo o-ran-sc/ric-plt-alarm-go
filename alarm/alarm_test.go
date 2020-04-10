@@ -32,7 +32,7 @@ var alarmer *alarm.RICAlarm
 
 // Test cases
 func TestAlarmInitSuccess(t *testing.T) {
-	a, err := alarm.InitAlarm("my-pod", "my-app")
+	a, err := alarm.InitAlarm("my-pod-lib", "my-app")
 	assert.Nil(t, err, "init failed")
 	assert.Equal(t, false, a == nil)
 
