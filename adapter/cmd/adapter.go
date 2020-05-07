@@ -203,6 +203,7 @@ func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 		"system_name": "RIC",
 	}
 	amAnnotations := models.LabelSet{
+		"alarm_id":        string(alarmDef.AlarmId),
 		"description":     newAlarm.IdentifyingInfo,
 		"additional_info": newAlarm.AdditionalInfo,
 		"summary":         alarmDef.EventType,
