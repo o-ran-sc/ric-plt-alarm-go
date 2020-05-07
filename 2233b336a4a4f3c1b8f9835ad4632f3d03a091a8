@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d31b91a4_b4f9a120",
+        "filename": "releases/container-release-ric-plt-alarmadapter.yaml",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2020-05-07T06:33:35Z",
+      "side": 1,
+      "message": "A while back with python releases is was so that it wasn\u0027t allowed to merge src code modification while you were merging also release file change releases/xxx.yaml in a same merge request.\n\nWhere does 429cfe6e2302ee69e067402489660f8e22319eeb hash points to? Should adapter cmd/adapter.go changes what you\u0027re merging also be part of this release too?",
+      "revId": "2233b336a4a4f3c1b8f9835ad4632f3d03a091a8",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
