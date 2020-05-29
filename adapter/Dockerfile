@@ -18,7 +18,7 @@
 #   platform project (RICP).
 #==================================================================================
 
-FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:7-u18.04 as ubuntu-alarmadapter
+FROM nexus3.o-ran-sc.org:10004/bldr-ubuntu18-c-go:8-u18.04 as ubuntu-alarmadapter
 
 # Install utilities
 RUN apt update && apt install -y iputils-ping net-tools curl sudo

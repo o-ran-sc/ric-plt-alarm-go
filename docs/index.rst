@@ -16,8 +16,8 @@
 ..  limitations under the License.
 ..
 
-Welcome to O-RAN Application Manager Documentation
-==================================================
+Alarm Go Library
+================
 
 .. toctree::
    :maxdepth: 2
