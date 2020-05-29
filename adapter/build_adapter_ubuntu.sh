@@ -58,9 +58,9 @@ hash=$(git rev-parse --short HEAD || true)
 go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/*.go
 
 # Execute UT and measure coverage for the Alarm Library
-cd ../alarm && go test . -v -coverprofile cover.out
+#cd ../alarm && go test . -v -coverprofile cover.out
 
 # And for the Alarm Adapter
-cd ../adapter && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
+#cd ../adapter && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
 
 echo "--> build_adapter_ubuntu.sh ends"
