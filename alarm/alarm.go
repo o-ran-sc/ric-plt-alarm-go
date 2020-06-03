@@ -136,6 +136,7 @@ func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 		return err
 	}
 
+	log.Println("JSON payload: ", fmt.Sprintf("%s", payload))
 	datap := C.CBytes(payload)
 	defer C.free(datap)
 	meid := C.CString("ric")
