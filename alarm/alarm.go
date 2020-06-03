@@ -130,12 +130,14 @@ func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 		return errors.New("RMR no ready yet!")
 	}
 
+    log.Printf("Alarm message: %+v\n", a)
 	log.Println("Sending alarm: ", r.AlarmString(a))
 	payload, err := json.Marshal(a)
 	if err != nil {
 		return err
 	}
 
+	log.Println("JSON payload: ", fmt.Sprintf("%s", payload))
 	datap := C.CBytes(payload)
 	defer C.free(datap)
 	meid := C.CString("ric")

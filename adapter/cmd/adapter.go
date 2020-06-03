@@ -126,6 +126,7 @@ func (a *AlarmAdapter) Consume(rp *app.RMRParams) (err error) {
 
 func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, error) {
 	var m alarm.AlarmMessage
+	app.Logger.Info("Received JSON: %s", rp.Payload)
 	if err := json.Unmarshal(rp.Payload, &m); err != nil {
 		app.Logger.Error("json.Unmarshal failed: %v", err)
 		return nil, err
