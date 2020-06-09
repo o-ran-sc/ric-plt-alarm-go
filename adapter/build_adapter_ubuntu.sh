@@ -22,11 +22,11 @@ set -eux
 echo "--> build_adapter_ubuntu.sh starts"
 
 # Install RMR from deb packages at packagecloud.io
-rmr=rmr_3.7.2_amd64.deb
+rmr=rmr_4.0.2_amd64.deb
 wget --content-disposition  https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/$rmr/download.deb
 sudo dpkg -i $rmr
 rm $rmr
-rmrdev=rmr-dev_3.7.2_amd64.deb
+rmrdev=rmr-dev_4.0.2_amd64.deb
 wget --content-disposition https://packagecloud.io/o-ran-sc/staging/packages/debian/stretch/$rmrdev/download.deb
 sudo dpkg -i $rmrdev
 rm $rmrdev
@@ -58,7 +58,7 @@ hash=$(git rev-parse --short HEAD || true)
 go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/*.go
 
 # Execute UT and measure coverage for the Alarm Library
-#cd ../alarm && go test . -v -coverprofile cover.out
+cd ../alarm && go test . -v -coverprofile cover.out
 
 # And for the Alarm Adapter
 cd ../adapter && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
