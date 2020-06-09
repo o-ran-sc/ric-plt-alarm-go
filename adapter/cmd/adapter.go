@@ -201,11 +201,11 @@ func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
 		"service":     fmt.Sprintf("%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
-		"system_name": "RIC",
+		"system_name": fmt.Sprintf("RIC:%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
 	}
 	amAnnotations := models.LabelSet{
-		"alarm_id":        string(alarmDef.AlarmId),
-		"description":     newAlarm.IdentifyingInfo,
+		"alarm_id":        fmt.Sprintf("%d", alarmDef.AlarmId),
+		"description":     fmt.Sprintf("%d:%s:%s", newAlarm.SpecificProblem, newAlarm.IdentifyingInfo, newAlarm.AdditionalInfo),
 		"additional_info": newAlarm.AdditionalInfo,
 		"summary":         alarmDef.EventType,
 		"instructions":    alarmDef.OperationInstructions,
@@ -229,7 +229,7 @@ func (a *AlarmAdapter) PostAlert(amLabels, amAnnotations models.LabelSet) (*aler
 	}
 	alertParams := alert.NewPostAlertsParams().WithAlerts(models.PostableAlerts{pa})
 
-	app.Logger.Info("Posting alerts: labels: %v, annotations: %v", amLabels, amAnnotations)
+	app.Logger.Info("Posting alerts: labels: %+v, annotations: %+v", amLabels, amAnnotations)
 	ok, err := a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
 	if err != nil {
 		app.Logger.Error("Posting alerts to '%s/%s' failed with error: %v", a.amHost, a.amBaseUrl, err)
