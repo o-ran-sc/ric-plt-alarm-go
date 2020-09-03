@@ -1,4 +1,5 @@
 # UUID                                                                               	Group Name
 #
 add1d629e64dce7097223c93ca6e710c1460b5ba                                             	GitHub Replication
+e994e8abcd0cd2efc3426eaaac4a41d7c46bc125                                             	saml/o-ran-sc-gerrit-ric-plt-alarm-go-committers
 ldap:cn=o-ran-sc-gerrit-ric-plt-alarm-go-committers,ou=Groups,dc=freestandards,dc=org	ldap/o-ran-sc-gerrit-ric-plt-alarm-go-committers
