@@ -45,6 +45,7 @@ var eventChan chan string
 
 // Test cases
 func TestMain(M *testing.M) {
+	os.Setenv("ALARM_IF_RMR", "true")
 	alarmAdapter = NewAlarmAdapter("localhost:9093", 500)
 	go alarmAdapter.Run(false)
 	time.Sleep(time.Duration(2) * time.Second)
@@ -65,7 +66,7 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
@@ -76,13 +77,13 @@ func TestAlarmClearedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise the alarm
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
 
 	// Now Clear the alarm and check alarm is removed
-	a = alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCleared, "Some App data", "eth 0 1")
+	a = alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)

@@ -69,11 +69,12 @@ type AlarmMessage struct {
 
 // RICAlarm is an alarm instance
 type RICAlarm struct {
-	moId     string
-	appId    string
-	rmrCtx   unsafe.Pointer
-	rmrReady bool
-	mutex    sync.Mutex
+	moId       string
+	appId      string
+	adapterUrl string
+	rmrCtx     unsafe.Pointer
+	rmrReady   bool
+	mutex      sync.Mutex
 }
 
 const (
@@ -97,28 +98,33 @@ type AlarmDefinition struct {
 }
 
 var RICAlarmDefinitions = map[int]AlarmDefinition{
-	RIC_RT_DISTRIBUTION_FAILED: AlarmDefinition{
+	RIC_RT_DISTRIBUTION_FAILED: {
 		AlarmId:               RIC_RT_DISTRIBUTION_FAILED,
 		AlarmText:             "RIC ROUTING TABLE DISTRIBUTION FAILED",
 		EventType:             "Processing error",
 		OperationInstructions: "Not defined",
 	},
-	TCP_CONNECTIVITY_LOST_TO_DBAAS: AlarmDefinition{
+	TCP_CONNECTIVITY_LOST_TO_DBAAS: {
 		AlarmId:               TCP_CONNECTIVITY_LOST_TO_DBAAS,
 		AlarmText:             "TCP CONNECTIVITY LOST TO DBAAS",
 		EventType:             "Communication error",
 		OperationInstructions: "Not defined",
 	},
-	E2_CONNECTIVITY_LOST_TO_GNODEB: AlarmDefinition{
+	E2_CONNECTIVITY_LOST_TO_GNODEB: {
 		AlarmId:               E2_CONNECTIVITY_LOST_TO_GNODEB,
 		AlarmText:             "E2 CONNECTIVITY LOST TO G-NODEB",
 		EventType:             "Communication error",
 		OperationInstructions: "Not defined",
 	},
-	E2_CONNECTIVITY_LOST_TO_ENODEB: AlarmDefinition{
+	E2_CONNECTIVITY_LOST_TO_ENODEB: {
 		AlarmId:               E2_CONNECTIVITY_LOST_TO_ENODEB,
 		AlarmText:             "E2 CONNECTIVITY LOST TO E-NODEB",
 		EventType:             "Communication error",
 		OperationInstructions: "Not defined",
 	},
 }
+
+const (
+	ALARM_ADAPTER_HTTP_URL string = "http://service-ricplt-alarmadapter-http.ricplt:8080"
+	ALARM_ADAPTER_RMR_URL  string = "service-ricplt-alarmadapter-rmr.ricplt:4560"
+)
