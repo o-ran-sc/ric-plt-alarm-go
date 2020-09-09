@@ -21,14 +21,16 @@
 package alarm
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 	"time"
 	"unsafe"
-	"os"
-	"io/ioutil"
 )
 
 /*
@@ -44,10 +46,18 @@ import "C"
 // The identities are used when raising/clearing alarms, unless provided by the applications.
 func InitAlarm(mo, id string) (*RICAlarm, error) {
 	r := &RICAlarm{
-		moId:  mo,
-		appId: id,
+		moId:       mo,
+		appId:      id,
+		adapterUrl: ALARM_ADAPTER_HTTP_URL,
 	}
-	go InitRMR(r)
+
+	if os.Getenv("ALARM_ADAPTER_URL") != "" {
+		r.adapterUrl = os.Getenv("ALARM_ADAPTER_URL")
+	}
+
+	if os.Getenv("ALARM_IF_RMR") != "" {
+		go InitRMR(r)
+	}
 
 	return r, nil
 }
@@ -126,18 +136,23 @@ func (r *RICAlarm) AlarmString(a AlarmMessage) string {
 }
 
 func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
-	if r.rmrCtx == nil || !r.rmrReady {
-		return errors.New("RMR no ready yet!")
-	}
-
-    log.Printf("Alarm message: %+v\n", a)
-	log.Println("Sending alarm: ", r.AlarmString(a))
 	payload, err := json.Marshal(a)
 	if err != nil {
+		log.Println("json.Marshal failed with error: ", err)
 		return err
 	}
+	log.Println("Sending alarm: ", fmt.Sprintf("%s", payload))
 
-	log.Println("JSON payload: ", fmt.Sprintf("%s", payload))
+	if r.rmrCtx == nil || !r.rmrReady {
+		url := fmt.Sprintf("%s/%s", r.adapterUrl, "ric/v1/alarms")
+		resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
+		if err != nil || resp == nil {
+			return fmt.Errorf("Unable to send alarm: %v", err)
+		}
+		log.Printf("Alarm posted to %s [status=%d]", url, resp.StatusCode)
+		return nil
+	}
+
 	datap := C.CBytes(payload)
 	defer C.free(datap)
 	meid := C.CString("ric")
@@ -163,7 +178,7 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 
 func InitRMR(r *RICAlarm) error {
 	// Setup static RT for alarm system
-	endpoint := "service-ricplt-alarmadapter-rmr.ricplt:4560"
+	endpoint := ALARM_ADAPTER_RMR_URL
 	if r.moId == "my-pod" {
 		endpoint = "localhost:4560"
 	} else if r.moId == "my-pod-lib" {

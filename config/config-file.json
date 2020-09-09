@@ -13,24 +13,14 @@
         "maxSize": 1024,
         "numWorkers": 1
     },
-    "promAlertManager": {
-        "address": "elfkp-prometheus-alertmanager:9093",
-        "baseUrl": "/api/v2",
-        "schemes": "http",
-        "alertInterval": 30000
-    },
-    "alarmDefinitions": [
-        {
-            "specificProblem": 1234,
-            "Text": "Connection to DBAAS server lost"
+    "controls": {
+        "promAlertManager": {
+            "address": "elfkp-prometheus-alertmanager:9093",
+            "baseUrl": "/api/v2",
+            "schemes": "http",
+            "alertInterval": 30000
         },
-        {
-            "specificProblem": 1235,
-            "Text": "Distribution of internal routing table failed due to timeout"
-        },
-        {
-            "specificProblem": 1236,
-            "Text": "E2 connection to gNB lost"
-        }
-    ]
+        "maxActiveAlarms": 5000,
+        "maxAlarmHistory": 20000
+    }
 }

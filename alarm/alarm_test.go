@@ -21,7 +21,12 @@
 package alarm_test
 
 import (
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -29,9 +34,13 @@ import (
 )
 
 var alarmer *alarm.RICAlarm
+var adapterSim *httptest.Server
 
 // Test cases
 func TestAlarmInitSuccess(t *testing.T) {
+	os.Setenv("ALARM_ADAPTER_URL", "http://localhost:8080")
+	adapterSim = CreateAlarmAdapterSim(t, "POST", "/ric/v1/alarms", http.StatusOK, nil)
+
 	a, err := alarm.InitAlarm("my-pod-lib", "my-app")
 	assert.Nil(t, err, "init failed")
 	assert.Equal(t, false, a == nil)
@@ -98,4 +107,30 @@ func TestSetApplicationIdSuccess(t *testing.T) {
 
 	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Equal(t, a.ApplicationId, "new-app")
+}
+
+func TestTeardown(t *testing.T) {
+	adapterSim.Close()
+}
+
+func CreateAlarmAdapterSim(t *testing.T, method, url string, status int, respData interface{}) *httptest.Server {
+	l, err := net.Listen("tcp", "localhost:8080")
+	if err != nil {
+		t.Error("Failed to create listener: " + err.Error())
+	}
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, r.Method, method)
+		assert.Equal(t, r.URL.String(), url)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(status)
+		b, _ := json.Marshal(respData)
+		w.Write(b)
+	}))
+	ts.Listener.Close()
+	ts.Listener = l
+
+	ts.Start()
+
+	return ts
 }

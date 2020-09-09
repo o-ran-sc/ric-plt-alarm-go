@@ -23,57 +23,84 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
-var alarmClient *alarm.RICAlarm
+func (a *AlarmAdapter) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	if payload != nil {
+		response, _ := json.Marshal(payload)
+		w.Write(response)
+	}
+}
 
 func (a *AlarmAdapter) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
-	app.Logger.Info("GetActiveAlarms: request received!")
+	app.Logger.Info("GetActiveAlarms: %+v", a.activeAlarms)
+	a.respondWithJSON(w, http.StatusOK, a.activeAlarms)
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	response, _ := json.Marshal(a.activeAlarms)
-	w.Write(response)
+func (a *AlarmAdapter) GetAlarmHistory(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info("GetAlarmHistory: %+v", a.alarmHistory)
+	a.respondWithJSON(w, http.StatusOK, a.alarmHistory)
 }
 
 func (a *AlarmAdapter) RaiseAlarm(w http.ResponseWriter, r *http.Request) {
-	a.doAction(w, r, true)
+	if err := a.doAction(w, r, true); err != nil {
+		a.respondWithJSON(w, http.StatusOK, err)
+	}
 }
 
 func (a *AlarmAdapter) ClearAlarm(w http.ResponseWriter, r *http.Request) {
-	a.doAction(w, r, false)
+	if err := a.doAction(w, r, false); err != nil {
+		a.respondWithJSON(w, http.StatusOK, err)
+	}
 }
 
-func (a *AlarmAdapter) doAction(w http.ResponseWriter, r *http.Request, raiseAlarm bool) {
-	app.Logger.Info("doAction: request received!")
+func (a *AlarmAdapter) doAction(w http.ResponseWriter, r *http.Request, isRaiseAlarm bool) error {
+	app.Logger.Info("doAction: request received = %t", isRaiseAlarm)
 
 	if r.Body == nil {
-		return
+		app.Logger.Error("Error: Invalid message body!")
+		return nil
 	}
 	defer r.Body.Close()
 
-	var d alarm.Alarm
-	err := json.NewDecoder(r.Body).Decode(&d)
-	if err != nil {
+	var m alarm.AlarmMessage
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		app.Logger.Error("json.NewDecoder failed: %v", err)
-		return
+		return err
 	}
 
-	if alarmClient == nil {
-		alarmClient, err = alarm.InitAlarm("RIC", "UEEC")
-		if err != nil {
-			app.Logger.Error("json.NewDecoder failed: %v", err)
-			return
-		}
+	if m.Alarm.ManagedObjectId == "" || m.Alarm.ApplicationId == "" || m.AlarmAction == "" {
+		app.Logger.Error("Error: Mandatory parameters missing!")
+		return nil
+	}
+
+	if m.AlarmTime == 0 {
+		m.AlarmTime = time.Now().UnixNano() / 1000
+	}
+
+	_, err := a.ProcessAlarm(&m)
+	return err
+}
+
+func (a *AlarmAdapter) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
+	alarmClient, err := alarm.InitAlarm(d.ManagedObjectId, d.ApplicationId)
+	if err != nil {
+		app.Logger.Error("json.NewDecoder failed: %v", err)
+		return err
 	}
 
 	alarmData := alarmClient.NewAlarm(d.SpecificProblem, d.PerceivedSeverity, d.AdditionalInfo, d.IdentifyingInfo)
-	if raiseAlarm {
+	if isRaiseAlarm {
 		alarmClient.Raise(alarmData)
 	} else {
 		alarmClient.Clear(alarmData)
 	}
+
+	return nil
 }
