@@ -112,8 +112,7 @@ func (a *AlarmAdapter) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 func (a *AlarmAdapter) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	for i, m := range a.activeAlarms {
 		if m.ManagedObjectId == newAlarm.ManagedObjectId && m.ApplicationId == newAlarm.ApplicationId &&
-			m.SpecificProblem == newAlarm.SpecificProblem && m.IdentifyingInfo == newAlarm.IdentifyingInfo &&
-			m.PerceivedSeverity == newAlarm.PerceivedSeverity {
+			m.SpecificProblem == newAlarm.SpecificProblem && m.IdentifyingInfo == newAlarm.IdentifyingInfo {
 			return i, true
 		}
 	}
