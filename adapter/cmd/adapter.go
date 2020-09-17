@@ -42,7 +42,7 @@ func (a *AlarmAdapter) StartAlertTimer() {
 		a.mutex.Lock()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
-			a.PostAlert(a.GenerateAlertLabels(m, AlertStatusActive))
+			a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive))
 		}
 		a.mutex.Unlock()
 	}
@@ -102,7 +102,7 @@ func (a *AlarmAdapter) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
-		a.UpdateAlarmLists(m.Alarm)
+		a.UpdateAlarmLists(m)
 		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive))
 	}
 
@@ -112,15 +112,14 @@ func (a *AlarmAdapter) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 func (a *AlarmAdapter) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	for i, m := range a.activeAlarms {
 		if m.ManagedObjectId == newAlarm.ManagedObjectId && m.ApplicationId == newAlarm.ApplicationId &&
-			m.SpecificProblem == newAlarm.SpecificProblem && m.IdentifyingInfo == newAlarm.IdentifyingInfo &&
-			m.PerceivedSeverity == newAlarm.PerceivedSeverity {
+			m.SpecificProblem == newAlarm.SpecificProblem && m.IdentifyingInfo == newAlarm.IdentifyingInfo {
 			return i, true
 		}
 	}
 	return -1, false
 }
 
-func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.Alarm, i int, listName string) []alarm.Alarm {
+func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName string) []alarm.AlarmMessage {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
@@ -129,7 +128,7 @@ func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.Alarm, i int, listName string)
 	return alarms[:len(alarms)-1]
 }
 
-func (a *AlarmAdapter) UpdateAlarmLists(newAlarm alarm.Alarm) {
+func (a *AlarmAdapter) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
@@ -143,8 +142,8 @@ func (a *AlarmAdapter) UpdateAlarmLists(newAlarm alarm.Alarm) {
 	}
 
 	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
-	a.activeAlarms = append(a.activeAlarms, newAlarm)
-	a.alarmHistory = append(a.alarmHistory, newAlarm)
+	a.activeAlarms = append(a.activeAlarms, *newAlarm)
+	a.alarmHistory = append(a.alarmHistory, *newAlarm)
 }
 
 func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus) (models.LabelSet, models.LabelSet) {
@@ -230,8 +229,8 @@ func NewAlarmAdapter(amHost string, alertInterval int) *AlarmAdapter {
 		amBaseUrl:     viper.GetString("controls.promAlertManager.baseUrl"),
 		amSchemes:     []string{viper.GetString("controls.promAlertManager.schemes")},
 		alertInterval: alertInterval,
-		activeAlarms:  make([]alarm.Alarm, 0),
-		alarmHistory:  make([]alarm.Alarm, 0),
+		activeAlarms:  make([]alarm.AlarmMessage, 0),
+		alarmHistory:  make([]alarm.AlarmMessage, 0),
 	}
 }
 

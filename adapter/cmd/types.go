@@ -31,8 +31,8 @@ type AlarmAdapter struct {
 	amBaseUrl     string
 	amSchemes     []string
 	alertInterval int
-	activeAlarms  []alarm.Alarm
-	alarmHistory  []alarm.Alarm
+	activeAlarms  []alarm.AlarmMessage
+	alarmHistory  []alarm.AlarmMessage
 	mutex         sync.Mutex
 	rmrReady      bool
 	postClear     bool
