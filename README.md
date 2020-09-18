@@ -1,18 +1,18 @@
-RIC Alarm Adapter and Library Interface
+RIC Alarm Manager and Library Interface
 =======================================
 
-This repository containts Golang implementation of Alarm Adapter and related application library interface.
+This repository containts Golang implementation of Alarm Manager and related application library interface.
 
 Architecture
 ------------
 
 ![Architecture](assets/alarm-adapter.png)
 
-The **Alarm Library** provides a simple interface for RIC applications (both platform application and xApps) to raise, clear and re-raise. The **Alarm Library** interacts with the **Alarm Adapter** via RMR interface.
+The **Alarm Library** provides a simple interface for RIC applications (both platform application and xApps) to raise, clear and re-raise. The **Alarm Library** interacts with the **Alarm Manager** via RMR interface.
 
-The **Alarm Adapter** is responsible for managing alarm situations in RIC cluster and interfacing with **Northboubd** applications such as **Prometheus AlertManager** to post the alarms as alerts. AlertManager takes care of deduplicating, silencing and inhibition (suppressing) of alerts, and routing them to the VESAgent, which, in turn, takes care of converting alerts to fault and send to ONAP as VES events.
+The **Alarm Manager** is responsible for managing alarm situations in RIC cluster and interfacing with **Northboubd** applications such as **Prometheus AlertManager** to post the alarms as alerts. AlertManager takes care of deduplicating, silencing and inhibition (suppressing) of alerts, and routing them to the VESAgent, which, in turn, takes care of converting alerts to fault and send to ONAP as VES events.
 
-Overview for Alarm Adapter
+Overview for Alarm Manager
 --------------------------
 
 ### TBD

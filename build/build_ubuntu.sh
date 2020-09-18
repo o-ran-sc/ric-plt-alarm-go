@@ -19,7 +19,7 @@
 
 set -eux
 
-echo "--> build_adapter_ubuntu.sh starts"
+echo "--> build_ubuntu.sh starts"
 
 # Install RMR from deb packages at packagecloud.io
 rmr=rmr_4.0.2_amd64.deb
@@ -54,13 +54,18 @@ fi
 
 hash=$(git rev-parse --short HEAD || true)
 
+ROOT_DIR=$PWD
+
 # Build
-go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-adapter ./cmd/*.go
+cd ${ROOT_DIR}/manager && go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-manager ./cmd/*.go
 
 # Execute UT and measure coverage for the Alarm Library
-cd ../alarm && go test . -v -coverprofile cover.out
+cd ${ROOT_DIR}/alarm && go test . -v -coverprofile cover.out
 
-# And for the Alarm Adapter
-cd ../adapter && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./adapter_test && ./adapter_test
+# And for the Alarm Manager
+cd ${ROOT_DIR}/manager && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./manager_test && ./manager_test
 
-echo "--> build_adapter_ubuntu.sh ends"
+# Finally compile the CLI
+cd ${ROOT_DIR}/cli && go build -a -installsuffix cgo alarm-cli.go
+
+echo "--> build_ubuntu.sh ends"

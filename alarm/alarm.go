@@ -48,11 +48,11 @@ func InitAlarm(mo, id string) (*RICAlarm, error) {
 	r := &RICAlarm{
 		moId:       mo,
 		appId:      id,
-		adapterUrl: ALARM_ADAPTER_HTTP_URL,
+		managerUrl: ALARM_MANAGER_HTTP_URL,
 	}
 
-	if os.Getenv("ALARM_ADAPTER_URL") != "" {
-		r.adapterUrl = os.Getenv("ALARM_ADAPTER_URL")
+	if os.Getenv("ALARM_MANAGER_URL") != "" {
+		r.managerUrl = os.Getenv("ALARM_MANAGER_URL")
 	}
 
 	if os.Getenv("ALARM_IF_RMR") != "" {
@@ -144,7 +144,7 @@ func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 	log.Println("Sending alarm: ", fmt.Sprintf("%s", payload))
 
 	if r.rmrCtx == nil || !r.rmrReady {
-		url := fmt.Sprintf("%s/%s", r.adapterUrl, "ric/v1/alarms")
+		url := fmt.Sprintf("%s/%s", r.managerUrl, "ric/v1/alarms")
 		resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
 		if err != nil || resp == nil {
 			return fmt.Errorf("Unable to send alarm: %v", err)
@@ -178,7 +178,7 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 
 func InitRMR(r *RICAlarm) error {
 	// Setup static RT for alarm system
-	endpoint := ALARM_ADAPTER_RMR_URL
+	endpoint := ALARM_MANAGER_RMR_URL
 	if r.moId == "my-pod" {
 		endpoint = "localhost:4560"
 	} else if r.moId == "my-pod-lib" {

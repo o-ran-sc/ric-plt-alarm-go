@@ -115,7 +115,6 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 	}
 
 	json.Unmarshal([]byte(body), &alarms)
-	fmt.Println(alarms)
 	return alarms
 }
 
@@ -142,7 +141,7 @@ func displayAlarms(alarms []alarm.AlarmMessage, isHistory bool) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	if isHistory {
-		t.AppendHeader(table.Row{"SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "TIME", "ACTION"})
+		t.AppendHeader(table.Row{"SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "ACTION", "TIME"})
 	} else {
 		t.AppendHeader(table.Row{"SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "TIME"})
 	}
@@ -151,7 +150,7 @@ func displayAlarms(alarms []alarm.AlarmMessage, isHistory bool) {
 		alarmTime := time.Unix(0, a.AlarmTime).Format("02/01/2006, 15:04:05")
 		if isHistory {
 			t.AppendRows([]table.Row{
-				{a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, alarmTime, a.AlarmAction},
+				{a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, a.AlarmAction, alarmTime},
 			})
 		} else {
 			t.AppendRows([]table.Row{

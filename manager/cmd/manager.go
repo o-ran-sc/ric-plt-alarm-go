@@ -36,7 +36,7 @@ import (
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
-func (a *AlarmAdapter) StartAlertTimer() {
+func (a *AlarmManager) StartAlertTimer() {
 	tick := time.Tick(time.Duration(a.alertInterval) * time.Millisecond)
 	for range tick {
 		a.mutex.Lock()
@@ -48,7 +48,7 @@ func (a *AlarmAdapter) StartAlertTimer() {
 	}
 }
 
-func (a *AlarmAdapter) Consume(rp *app.RMRParams) (err error) {
+func (a *AlarmManager) Consume(rp *app.RMRParams) (err error) {
 	app.Logger.Info("Message received!")
 
 	defer app.Rmr.Free(rp.Mbuf)
@@ -62,7 +62,7 @@ func (a *AlarmAdapter) Consume(rp *app.RMRParams) (err error) {
 	return nil
 }
 
-func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, error) {
+func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, error) {
 	var m alarm.AlarmMessage
 	app.Logger.Info("Received JSON: %s", rp.Payload)
 	if err := json.Unmarshal(rp.Payload, &m); err != nil {
@@ -74,7 +74,7 @@ func (a *AlarmAdapter) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 	return a.ProcessAlarm(&m)
 }
 
-func (a *AlarmAdapter) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK, error) {
+func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK, error) {
 	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
 		return nil, nil
@@ -109,7 +109,7 @@ func (a *AlarmAdapter) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 	return nil, nil
 }
 
-func (a *AlarmAdapter) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
+func (a *AlarmManager) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	for i, m := range a.activeAlarms {
 		if m.ManagedObjectId == newAlarm.ManagedObjectId && m.ApplicationId == newAlarm.ApplicationId &&
 			m.SpecificProblem == newAlarm.SpecificProblem && m.IdentifyingInfo == newAlarm.IdentifyingInfo {
@@ -119,7 +119,7 @@ func (a *AlarmAdapter) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	return -1, false
 }
 
-func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName string) []alarm.AlarmMessage {
+func (a *AlarmManager) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName string) []alarm.AlarmMessage {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
@@ -128,7 +128,7 @@ func (a *AlarmAdapter) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName 
 	return alarms[:len(alarms)-1]
 }
 
-func (a *AlarmAdapter) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
+func (a *AlarmManager) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
@@ -146,7 +146,7 @@ func (a *AlarmAdapter) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	a.alarmHistory = append(a.alarmHistory, *newAlarm)
 }
 
-func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus) (models.LabelSet, models.LabelSet) {
+func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus) (models.LabelSet, models.LabelSet) {
 	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
 		"status":      string(status),
@@ -166,12 +166,12 @@ func (a *AlarmAdapter) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 	return amLabels, amAnnotations
 }
 
-func (a *AlarmAdapter) NewAlertmanagerClient() *client.Alertmanager {
+func (a *AlarmManager) NewAlertmanagerClient() *client.Alertmanager {
 	cr := clientruntime.New(a.amHost, a.amBaseUrl, a.amSchemes)
 	return client.New(cr, strfmt.Default)
 }
 
-func (a *AlarmAdapter) PostAlert(amLabels, amAnnotations models.LabelSet) (*alert.PostAlertsOK, error) {
+func (a *AlarmManager) PostAlert(amLabels, amAnnotations models.LabelSet) (*alert.PostAlertsOK, error) {
 	pa := &models.PostableAlert{
 		Alert: models.Alert{
 			GeneratorURL: strfmt.URI(""),
@@ -189,7 +189,7 @@ func (a *AlarmAdapter) PostAlert(amLabels, amAnnotations models.LabelSet) (*aler
 	return ok, err
 }
 
-func (a *AlarmAdapter) StatusCB() bool {
+func (a *AlarmManager) StatusCB() bool {
 	if !a.rmrReady {
 		app.Logger.Info("RMR not ready yet!")
 	}
@@ -197,8 +197,8 @@ func (a *AlarmAdapter) StatusCB() bool {
 	return a.rmrReady
 }
 
-func (a *AlarmAdapter) Run(sdlcheck bool) {
-	app.Logger.SetMdc("alarmAdapter", fmt.Sprintf("%s:%s", Version, Hash))
+func (a *AlarmManager) Run(sdlcheck bool) {
+	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
 
@@ -214,7 +214,7 @@ func (a *AlarmAdapter) Run(sdlcheck bool) {
 	app.RunWithParams(a, sdlcheck)
 }
 
-func NewAlarmAdapter(amHost string, alertInterval int) *AlarmAdapter {
+func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 	if alertInterval == 0 {
 		alertInterval = viper.GetInt("controls.promAlertManager.alertInterval")
 	}
@@ -223,7 +223,7 @@ func NewAlarmAdapter(amHost string, alertInterval int) *AlarmAdapter {
 		amHost = viper.GetString("controls.promAlertManager.address")
 	}
 
-	return &AlarmAdapter{
+	return &AlarmManager{
 		rmrReady:      false,
 		amHost:        amHost,
 		amBaseUrl:     viper.GetString("controls.promAlertManager.baseUrl"),
@@ -236,5 +236,5 @@ func NewAlarmAdapter(amHost string, alertInterval int) *AlarmAdapter {
 
 // Main function
 func main() {
-	NewAlarmAdapter("", 0).Run(true)
+	NewAlarmManager("", 0).Run(true)
 }

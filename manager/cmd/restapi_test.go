@@ -39,7 +39,7 @@ func TestGetActiveAlarmsRESTInterface(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(alarmAdapter.GetActiveAlarms)
+	handler := http.HandlerFunc(alarmManager.GetActiveAlarms)
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, true, rr != nil)
@@ -59,7 +59,7 @@ func TestRaiseAlarmRESTInterface(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(alarmAdapter.RaiseAlarm)
+	handler := http.HandlerFunc(alarmManager.RaiseAlarm)
 	handler.ServeHTTP(rr, req)
 
 	assert.True(t, rr != nil)
@@ -79,7 +79,7 @@ func TestClearAlarmRESTInterface(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(alarmAdapter.ClearAlarm)
+	handler := http.HandlerFunc(alarmManager.ClearAlarm)
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, true, rr != nil)

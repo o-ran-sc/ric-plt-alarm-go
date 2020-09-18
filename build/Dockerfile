@@ -18,27 +18,27 @@
 #   platform project (RICP).
 #==================================================================================
 
-FROM nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 as ubuntu-alarmadapter
+FROM nexus3.o-ran-sc.org:10004/o-ran-sc/bldr-ubuntu18-c-go:9-u18.04 as ubuntu-alarm-manager
 
 # Install utilities
 RUN apt update && apt install -y iputils-ping net-tools curl sudo
 
 # Install dependencies, compile and test the module
-RUN mkdir -p /go/src/alarm-adapter
-COPY . /go/src/alarm-adapter
+RUN mkdir -p /go/src/am
+COPY . /go/src/am
 
-WORKDIR "/go/src/alarm-adapter/adapter"
-RUN ./build_adapter_ubuntu.sh
+WORKDIR "/go/src/am"
+RUN ./build/build_ubuntu.sh
 
 # Final, executable and deployable container
 FROM ubuntu:18.04
 
-COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/adapter/run_adapter.sh /
-COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/adapter/alarm-adapter /
-COPY --from=ubuntu-alarmadapter /go/src/alarm-adapter/config/* /
-COPY --from=ubuntu-alarmadapter /usr/local/lib /usr/local/lib
+COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
+COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
+COPY --from=ubuntu-alarm-manager /go/src/am/config/* /
+COPY --from=ubuntu-alarm-manager /usr/local/lib /usr/local/lib
 
 RUN ldconfig
 
-RUN chmod 755 /run_adapter.sh
-CMD /run_adapter.sh
+RUN chmod 755 /run.sh
+CMD /run.sh
