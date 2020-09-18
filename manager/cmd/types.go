@@ -26,7 +26,7 @@ import (
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 )
 
-type AlarmAdapter struct {
+type AlarmManager struct {
 	amHost        string
 	amBaseUrl     string
 	amSchemes     []string

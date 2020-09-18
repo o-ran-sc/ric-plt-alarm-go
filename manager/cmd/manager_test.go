@@ -39,15 +39,15 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
-var alarmAdapter *AlarmAdapter
+var alarmManager *AlarmManager
 var alarmer *alarm.RICAlarm
 var eventChan chan string
 
 // Test cases
 func TestMain(M *testing.M) {
 	os.Setenv("ALARM_IF_RMR", "true")
-	alarmAdapter = NewAlarmAdapter("localhost:9093", 500)
-	go alarmAdapter.Run(false)
+	alarmManager = NewAlarmManager("localhost:9093", 500)
+	go alarmManager.Run(false)
 	time.Sleep(time.Duration(2) * time.Second)
 
 	// Wait until RMR is up-and-running
@@ -87,7 +87,7 @@ func TestAlarmClearedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
-	assert.Equal(t, len(alarmAdapter.activeAlarms), 0)
+	assert.Equal(t, len(alarmManager.activeAlarms), 0)
 }
 
 func TestMultipleAlarmsRaisedSucess(t *testing.T) {
@@ -117,7 +117,7 @@ func TestMultipleAlarmsClearedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Clear(b), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
-	assert.Equal(t, len(alarmAdapter.activeAlarms), 0)
+	assert.Equal(t, len(alarmManager.activeAlarms), 0)
 }
 
 func TestAlarmsSuppresedSucess(t *testing.T) {
@@ -139,25 +139,25 @@ func TestInvalidAlarms(t *testing.T) {
 }
 
 func TestAlarmHandlingErrorCases(t *testing.T) {
-	ok, err := alarmAdapter.HandleAlarms(&xapp.RMRParams{})
+	ok, err := alarmManager.HandleAlarms(&xapp.RMRParams{})
 	assert.Equal(t, err.Error(), "unexpected end of JSON input")
 	assert.Nil(t, ok, "raise failed")
 }
 
 func TestConsumeUnknownMessage(t *testing.T) {
-	err := alarmAdapter.Consume(&xapp.RMRParams{})
+	err := alarmManager.Consume(&xapp.RMRParams{})
 	assert.Nil(t, err, "raise failed")
 }
 
 func TestStatusCallback(t *testing.T) {
-	assert.Equal(t, true, alarmAdapter.StatusCB())
+	assert.Equal(t, true, alarmManager.StatusCB())
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
-	assert.Equal(t, len(alarmAdapter.activeAlarms), expectedCount)
-	_, ok := alarmAdapter.IsMatchFound(a)
+	assert.Equal(t, len(alarmManager.activeAlarms), expectedCount)
+	_, ok := alarmManager.IsMatchFound(a)
 	assert.True(t, ok)
 
 	return receivedAlert

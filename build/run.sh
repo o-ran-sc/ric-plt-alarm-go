@@ -18,11 +18,11 @@
 #==================================================================================
 #
 #
-#	Mnemonic:	run_adapter.sh
-#	Abstract:	Starts the alarm adapter service
+#	Mnemonic:	run.sh
+#	Abstract:	Starts the alarm manager service
 #	Date:		10 March 2020
 #
 export RMR_SEED_RT=./uta_rtg.rt
-export RMR_SRC_ID="service-ricplt-alarmadapter-rmr.ricplt"
+export RMR_SRC_ID="service-ricplt-alarmmanager-rmr.ricplt"
 
-exec ./alarm-adapter -f ./config-file.json
+exec ./alarm-manager -f ./config-file.json

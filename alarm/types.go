@@ -71,7 +71,7 @@ type AlarmMessage struct {
 type RICAlarm struct {
 	moId       string
 	appId      string
-	adapterUrl string
+	managerUrl string
 	rmrCtx     unsafe.Pointer
 	rmrReady   bool
 	mutex      sync.Mutex
@@ -125,6 +125,6 @@ var RICAlarmDefinitions = map[int]AlarmDefinition{
 }
 
 const (
-	ALARM_ADAPTER_HTTP_URL string = "http://service-ricplt-alarmadapter-http.ricplt:8080"
-	ALARM_ADAPTER_RMR_URL  string = "service-ricplt-alarmadapter-rmr.ricplt:4560"
+	ALARM_MANAGER_HTTP_URL string = "http://service-ricplt-alarmmanager-http.ricplt:8080"
+	ALARM_MANAGER_RMR_URL  string = "service-ricplt-alarmmanager-rmr.ricplt:4560"
 )

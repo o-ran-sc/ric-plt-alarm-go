@@ -6,5 +6,5 @@ container_push_registry: nexus3.o-ran-sc.org:10002
 project: ric-plt/alarm-go
 ref: c8687a0e843eb98d91f3f669a2d3dcc680def039
 containers:
-    - name: ric-plt-alarmadapter
-      version: 0.4.5
+    - name: ric-plt-alarmmanager
+      version: 0.5.1

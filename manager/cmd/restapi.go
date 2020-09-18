@@ -29,7 +29,7 @@ import (
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 )
 
-func (a *AlarmAdapter) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+func (a *AlarmManager) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	if payload != nil {
@@ -38,29 +38,29 @@ func (a *AlarmAdapter) respondWithJSON(w http.ResponseWriter, code int, payload 
 	}
 }
 
-func (a *AlarmAdapter) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
+func (a *AlarmManager) GetActiveAlarms(w http.ResponseWriter, r *http.Request) {
 	app.Logger.Info("GetActiveAlarms: %+v", a.activeAlarms)
 	a.respondWithJSON(w, http.StatusOK, a.activeAlarms)
 }
 
-func (a *AlarmAdapter) GetAlarmHistory(w http.ResponseWriter, r *http.Request) {
+func (a *AlarmManager) GetAlarmHistory(w http.ResponseWriter, r *http.Request) {
 	app.Logger.Info("GetAlarmHistory: %+v", a.alarmHistory)
 	a.respondWithJSON(w, http.StatusOK, a.alarmHistory)
 }
 
-func (a *AlarmAdapter) RaiseAlarm(w http.ResponseWriter, r *http.Request) {
+func (a *AlarmManager) RaiseAlarm(w http.ResponseWriter, r *http.Request) {
 	if err := a.doAction(w, r, true); err != nil {
 		a.respondWithJSON(w, http.StatusOK, err)
 	}
 }
 
-func (a *AlarmAdapter) ClearAlarm(w http.ResponseWriter, r *http.Request) {
+func (a *AlarmManager) ClearAlarm(w http.ResponseWriter, r *http.Request) {
 	if err := a.doAction(w, r, false); err != nil {
 		a.respondWithJSON(w, http.StatusOK, err)
 	}
 }
 
-func (a *AlarmAdapter) doAction(w http.ResponseWriter, r *http.Request, isRaiseAlarm bool) error {
+func (a *AlarmManager) doAction(w http.ResponseWriter, r *http.Request, isRaiseAlarm bool) error {
 	app.Logger.Info("doAction: request received = %t", isRaiseAlarm)
 
 	if r.Body == nil {
@@ -88,7 +88,7 @@ func (a *AlarmAdapter) doAction(w http.ResponseWriter, r *http.Request, isRaiseA
 	return err
 }
 
-func (a *AlarmAdapter) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
+func (a *AlarmManager) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
 	alarmClient, err := alarm.InitAlarm(d.ManagedObjectId, d.ApplicationId)
 	if err != nil {
 		app.Logger.Error("json.NewDecoder failed: %v", err)

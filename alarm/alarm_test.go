@@ -34,12 +34,12 @@ import (
 )
 
 var alarmer *alarm.RICAlarm
-var adapterSim *httptest.Server
+var managerSim *httptest.Server
 
 // Test cases
 func TestAlarmInitSuccess(t *testing.T) {
-	os.Setenv("ALARM_ADAPTER_URL", "http://localhost:8080")
-	adapterSim = CreateAlarmAdapterSim(t, "POST", "/ric/v1/alarms", http.StatusOK, nil)
+	os.Setenv("ALARM_MANAGER_URL", "http://localhost:8080")
+	managerSim = CreateAlarmManagerSim(t, "POST", "/ric/v1/alarms", http.StatusOK, nil)
 
 	a, err := alarm.InitAlarm("my-pod-lib", "my-app")
 	assert.Nil(t, err, "init failed")
@@ -110,10 +110,10 @@ func TestSetApplicationIdSuccess(t *testing.T) {
 }
 
 func TestTeardown(t *testing.T) {
-	adapterSim.Close()
+	managerSim.Close()
 }
 
-func CreateAlarmAdapterSim(t *testing.T, method, url string, status int, respData interface{}) *httptest.Server {
+func CreateAlarmManagerSim(t *testing.T, method, url string, status int, respData interface{}) *httptest.Server {
 	l, err := net.Listen("tcp", "localhost:8080")
 	if err != nil {
 		t.Error("Failed to create listener: " + err.Error())
