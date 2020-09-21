@@ -90,6 +90,7 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
 		if found {
+			a.alarmHistory = append(a.alarmHistory, *m)
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
 
 			if a.postClear {
