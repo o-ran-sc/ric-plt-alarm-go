@@ -133,13 +133,22 @@ func (a *AlarmManager) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	// If maximum number of active alarms is reached, purge the oldest alarm
-	if len(a.activeAlarms) >= viper.GetInt("controls.maxActiveAlarms") {
-		a.activeAlarms = a.RemoveAlarm(a.activeAlarms, 0, "active")
+	/* If maximum number of active alarms is reached, an error log writing is made, and new alarm indicating the problem is raised.
+	   The attempt to raise the alarm next time will be supressed when found as duplicate. */
+	if len(a.activeAlarms) >= a.maxActiveAlarms {
+		app.Logger.Error("active alarm count exceeded maxActiveAlarms threshold")
+		actAlarm := a.alarmClient.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "clear alarms or raise threshold", "active alarms full")
+		actAlarmMessage := alarm.AlarmMessage{Alarm: actAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
+		a.activeAlarms = append(a.activeAlarms, actAlarmMessage)
+		a.alarmHistory = append(a.alarmHistory, actAlarmMessage)
 	}
 
-	if len(a.alarmHistory) >= viper.GetInt("controls.maxAlarmHistory") {
-		a.alarmHistory = a.RemoveAlarm(a.alarmHistory, 0, "history")
+	if len(a.alarmHistory) >= a.maxAlarmHistory {
+		app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
+		histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "clear alarms or raise threshold", "alarm history full")
+		histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
+		a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
+		a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
 	}
 
 	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
@@ -198,19 +207,34 @@ func (a *AlarmManager) StatusCB() bool {
 	return a.rmrReady
 }
 
+func (a *AlarmManager) ConfigChangeCB(configparam string) {
+
+	a.maxActiveAlarms = app.Config.GetInt("controls.maxActiveAlarms")
+	a.maxAlarmHistory = app.Config.GetInt("controls.maxAlarmHistory")
+
+	app.Logger.Debug("ConfigChangeCB: maxActiveAlarms %v", a.maxActiveAlarms)
+	app.Logger.Debug("ConfigChangeCB: maxAlarmHistory = %v", a.maxAlarmHistory)
+
+	return
+}
+
 func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
+	app.AddConfigChangeListener(a.ConfigChangeCB)
 
 	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
 	app.Resource.InjectRoute("/ric/v1/alarms/active", a.GetActiveAlarms, "GET")
 	app.Resource.InjectRoute("/ric/v1/alarms/history", a.GetAlarmHistory, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/config", a.SetAlarmConfig, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms/config", a.GetAlarmConfig, "GET")
 
 	// Start background timer for re-raising alerts
 	a.postClear = sdlcheck
 	go a.StartAlertTimer()
+	a.alarmClient, _ = alarm.InitAlarm("SEP", "ALARMMANAGER")
 
 	app.RunWithParams(a, sdlcheck)
 }
@@ -225,13 +249,15 @@ func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 	}
 
 	return &AlarmManager{
-		rmrReady:      false,
-		amHost:        amHost,
-		amBaseUrl:     viper.GetString("controls.promAlertManager.baseUrl"),
-		amSchemes:     []string{viper.GetString("controls.promAlertManager.schemes")},
-		alertInterval: alertInterval,
-		activeAlarms:  make([]alarm.AlarmMessage, 0),
-		alarmHistory:  make([]alarm.AlarmMessage, 0),
+		rmrReady:        false,
+		amHost:          amHost,
+		amBaseUrl:       viper.GetString("controls.promAlertManager.baseUrl"),
+		amSchemes:       []string{viper.GetString("controls.promAlertManager.schemes")},
+		alertInterval:   alertInterval,
+		activeAlarms:    make([]alarm.AlarmMessage, 0),
+		alarmHistory:    make([]alarm.AlarmMessage, 0),
+		maxActiveAlarms: app.Config.GetInt("controls.maxActiveAlarms"),
+		maxAlarmHistory: app.Config.GetInt("controls.maxAlarmHistory"),
 	}
 }
 

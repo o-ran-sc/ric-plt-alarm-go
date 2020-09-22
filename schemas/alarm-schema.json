@@ -70,7 +70,7 @@
     "identifyingInfo": {
       "type": "string",
       "title": "The identifyingInfo schema",
-      "description": "Identifying additional information, which is part of alarm identity.",
+      "description": "Identifying additional information which is part of alarm identity.",
       "default": ""
     },
     "AlarmAction": {
