@@ -33,7 +33,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-
+        "github.com/gorilla/mux"
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/prometheus/alertmanager/api/v2/models"
@@ -56,6 +56,7 @@ func TestMain(M *testing.M) {
 	}
 
 	alarmer, _ = alarm.InitAlarm("my-pod", "my-app")
+	alarmManager.alarmClient = alarmer
 	time.Sleep(time.Duration(5) * time.Second)
 	eventChan = make(chan string)
 
@@ -130,7 +131,9 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
 }
+
 
 func TestInvalidAlarms(t *testing.T) {
 	a := alarmer.NewAlarm(1111, alarm.SeverityMajor, "Some App data", "eth 0 1")
@@ -151,6 +154,38 @@ func TestConsumeUnknownMessage(t *testing.T) {
 
 func TestStatusCallback(t *testing.T) {
 	assert.Equal(t, true, alarmManager.StatusCB())
+}
+
+func TestActiveAlarmMaxThresholds(t *testing.T) {
+	xapp.Logger.Info("TestActiveAlarmMaxThresholds")
+	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
+	alarmManager.maxActiveAlarms = 0
+	alarmManager.maxAlarmHistory = 10
+
+	a := alarmer.NewAlarm(alarm.E2_CONNECTIVITY_LOST_TO_GNODEB, alarm.SeverityCritical, "Some Application data", "eth 0 2")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
+
+	var alarmConfigParams alarm.AlarmConfigParams
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/config", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmConfig)
+	response := executeRequest(req, handleFunc)
+
+	// Check HTTP Status Code
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Decode the json output from handler
+	json.NewDecoder(response.Body).Decode(&alarmConfigParams)
+	if alarmConfigParams.MaxActiveAlarms != 0 || alarmConfigParams.MaxAlarmHistory != 10 {
+		t.Errorf("Incorrect alarm thresholds")
+	}
+
+	time.Sleep(time.Duration(1) * time.Second)
+	alarmManager.maxActiveAlarms = 5000
+	alarmManager.maxAlarmHistory = 20000
+	VerifyAlarm(t, a, 2)
+	VerifyAlarm(t, a, 2)
+	ts.Close()
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
@@ -204,3 +239,20 @@ func fireEvent(t *testing.T, body io.ReadCloser) {
 
 	eventChan <- fmt.Sprintf("%s", reqBody)
 }
+
+func executeRequest(req *http.Request, handleR http.HandlerFunc) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+
+	handleR.ServeHTTP(rr, req)
+
+	return rr
+}
+
+func checkResponseCode(t *testing.T, expected, actual int) bool {
+	if expected != actual {
+		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+		return false
+	}
+	return true
+}
+
