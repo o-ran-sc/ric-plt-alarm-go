@@ -81,7 +81,7 @@ func (a *AlarmManager) doAction(w http.ResponseWriter, r *http.Request, isRaiseA
 	}
 
 	if m.AlarmTime == 0 {
-		m.AlarmTime = time.Now().UnixNano() / 1000
+		m.AlarmTime = time.Now().UnixNano()
 	}
 
 	_, err := a.ProcessAlarm(&m)
