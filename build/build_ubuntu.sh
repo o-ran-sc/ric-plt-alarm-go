@@ -22,11 +22,11 @@ set -eux
 echo "--> build_ubuntu.sh starts"
 
 # Install RMR from deb packages at packagecloud.io
-rmr=rmr_4.0.2_amd64.deb
+rmr=rmr_4.1.2_amd64.deb
 wget --content-disposition  https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/$rmr/download.deb
 sudo dpkg -i $rmr
 rm $rmr
-rmrdev=rmr-dev_4.0.2_amd64.deb
+rmrdev=rmr-dev_4.1.2_amd64.deb
 wget --content-disposition https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/$rmrdev/download.deb
 sudo dpkg -i $rmrdev
 rm $rmrdev

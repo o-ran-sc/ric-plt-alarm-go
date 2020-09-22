@@ -67,6 +67,11 @@ type AlarmMessage struct {
 	AlarmTime int64
 }
 
+type AlarmConfigParams struct {
+        MaxActiveAlarms int `json:"maxactivealarms"`
+        MaxAlarmHistory int `json:"maxalarmhistory"`
+}
+
 // RICAlarm is an alarm instance
 type RICAlarm struct {
 	moId       string
@@ -88,6 +93,8 @@ const (
 	TCP_CONNECTIVITY_LOST_TO_DBAAS int = 8005
 	E2_CONNECTIVITY_LOST_TO_GNODEB int = 8006
 	E2_CONNECTIVITY_LOST_TO_ENODEB int = 8007
+	ACTIVE_ALARM_COUNT_MORE_THAN_MAX_THRESHOLD int = 8008
+	ALARM_HISTORY_COUNT_MORE_THAN_MAX_THRESHOLD int = 8009
 )
 
 type AlarmDefinition struct {
@@ -120,6 +127,18 @@ var RICAlarmDefinitions = map[int]AlarmDefinition{
 		AlarmId:               E2_CONNECTIVITY_LOST_TO_ENODEB,
 		AlarmText:             "E2 CONNECTIVITY LOST TO E-NODEB",
 		EventType:             "Communication error",
+		OperationInstructions: "Not defined",
+	},
+	ACTIVE_ALARM_COUNT_MORE_THAN_MAX_THRESHOLD: {
+		AlarmId:               ACTIVE_ALARM_COUNT_MORE_THAN_MAX_THRESHOLD,
+		AlarmText:             "ACTIVE ALARM COUNT MORE THAN MAX THRESHOLD",
+		EventType:             "Warning",
+		OperationInstructions: "Not defined",
+	},
+	ALARM_HISTORY_COUNT_MORE_THAN_MAX_THRESHOLD: {
+		AlarmId:               ALARM_HISTORY_COUNT_MORE_THAN_MAX_THRESHOLD,
+		AlarmText:             "ALARM HISTORY COUNT MORE THAN MAX THRESHOLD",
+		EventType:             "Warning",
 		OperationInstructions: "Not defined",
 	},
 }
