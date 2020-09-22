@@ -74,6 +74,18 @@ func main() {
 			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear)
 		})
 
+	// Configure an alarm manager
+	commando.
+		Register("configure").
+		SetShortDescription("Configure alarm manager with given parameters").
+		AddFlag("mal", "max active alarms", commando.Int, nil).
+		AddFlag("mah", "max alarm history", commando.Int, nil).
+		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			postAlarmConfig(flags)
+		})
+
 	// parse command-line arguments
 	commando.Parse(nil)
 }
@@ -161,4 +173,25 @@ func displayAlarms(alarms []alarm.AlarmMessage, isHistory bool) {
 
 	t.SetStyle(table.StyleColoredBright)
 	t.Render()
+}
+
+func postAlarmConfig(flags map[string]commando.FlagValue) {
+	host, _ := flags["host"].GetString()
+	port, _ := flags["port"].GetString()
+	maxactivealarms, _ := flags["mal"].GetInt()
+	maxalarmhistory, _ := flags["mah"].GetInt()
+	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/config", host, port)
+
+	m := alarm.AlarmConfigParams{MaxActiveAlarms: maxactivealarms, MaxAlarmHistory: maxalarmhistory}
+	jsonData, err := json.Marshal(m)
+	if err != nil {
+		fmt.Println("json.Marshal failed: %v", err)
+		return
+	}
+
+	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil || resp == nil {
+		fmt.Println("Couldn't fetch post alarm configuration due to error: %v", err)
+		return
+	}
 }
