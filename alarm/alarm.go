@@ -76,7 +76,7 @@ func (r *RICAlarm) NewAlarm(sp int, severity Severity, ainfo, iinfo string) Alar
 
 // Create a new AlarmMessage instance
 func (r *RICAlarm) NewAlarmMessage(a Alarm, alarmAction AlarmAction) AlarmMessage {
-	alarmTime := time.Now().UnixNano() / 1000
+	alarmTime := time.Now().UnixNano()
 	return AlarmMessage{a, alarmAction, alarmTime}
 }
 
