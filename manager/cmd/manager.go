@@ -42,7 +42,7 @@ func (a *AlarmManager) StartAlertTimer() {
 		a.mutex.Lock()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
-			a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive))
+			a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
 		}
 		a.mutex.Unlock()
 	}
@@ -94,7 +94,7 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
 
 			if a.postClear {
-				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved))
+				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved, m.AlarmTime))
 			}
 		}
 		app.Logger.Info("No matching active alarm found, suppressing ...")
@@ -104,7 +104,7 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
 		a.UpdateAlarmLists(m)
-		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive))
+		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
 	}
 
 	return nil, nil
@@ -147,7 +147,7 @@ func (a *AlarmManager) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	a.alarmHistory = append(a.alarmHistory, *newAlarm)
 }
 
-func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus) (models.LabelSet, models.LabelSet) {
+func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus, alarmTime int64) (models.LabelSet, models.LabelSet) {
 	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
 		"status":      string(status),
@@ -162,6 +162,7 @@ func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 		"additional_info": newAlarm.AdditionalInfo,
 		"summary":         alarmDef.EventType,
 		"instructions":    alarmDef.OperationInstructions,
+		"timestamp":       fmt.Sprintf("%s", time.Unix(0, alarmTime).Format("02/01/2006, 15:04:05")),
 	}
 
 	return amLabels, amAnnotations
