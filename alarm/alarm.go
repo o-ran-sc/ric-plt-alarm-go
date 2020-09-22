@@ -180,9 +180,9 @@ func InitRMR(r *RICAlarm) error {
 	// Setup static RT for alarm system
 	endpoint := ALARM_MANAGER_RMR_URL
 	if r.moId == "my-pod" {
-		endpoint = "localhost:4560"
+		endpoint = "127.0.0.1:4560"
 	} else if r.moId == "my-pod-lib" {
-		endpoint = "localhost:4588"
+		endpoint = "127.0.0.1:4588"
 	}
 
 	alarmRT := fmt.Sprintf("newrt|start\nrte|13111|%s\nnewrt|end\n", endpoint)
