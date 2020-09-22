@@ -56,6 +56,7 @@ func TestMain(M *testing.M) {
 	}
 
 	alarmer, _ = alarm.InitAlarm("my-pod", "my-app")
+	alarmManager.alarmClient = alarmer
 	time.Sleep(time.Duration(5) * time.Second)
 	eventChan = make(chan string)
 
@@ -130,7 +131,9 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
 }
+
 
 func TestInvalidAlarms(t *testing.T) {
 	a := alarmer.NewAlarm(1111, alarm.SeverityMajor, "Some App data", "eth 0 1")
@@ -151,6 +154,23 @@ func TestConsumeUnknownMessage(t *testing.T) {
 
 func TestStatusCallback(t *testing.T) {
 	assert.Equal(t, true, alarmManager.StatusCB())
+}
+
+func TestActiveAlarmMaxThresholds(t *testing.T) {
+	xapp.Logger.Info("TestActiveAlarmMaxThresholds")
+	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
+	alarmManager.maxActiveAlarms = 0
+	alarmManager.maxAlarmHistory = 10
+
+	a := alarmer.NewAlarm(alarm.E2_CONNECTIVITY_LOST_TO_GNODEB, alarm.SeverityCritical, "Some Application data", "eth 0 2")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
+
+	time.Sleep(time.Duration(1) * time.Second)
+	alarmManager.maxActiveAlarms = 5000
+	alarmManager.maxAlarmHistory = 20000
+	VerifyAlarm(t, a, 2)
+	VerifyAlarm(t, a, 2)
+	ts.Close()
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {

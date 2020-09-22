@@ -27,15 +27,18 @@ import (
 )
 
 type AlarmManager struct {
-	amHost        string
-	amBaseUrl     string
-	amSchemes     []string
-	alertInterval int
-	activeAlarms  []alarm.AlarmMessage
-	alarmHistory  []alarm.AlarmMessage
-	mutex         sync.Mutex
-	rmrReady      bool
-	postClear     bool
+	amHost          string
+	amBaseUrl       string
+	amSchemes       []string
+	alertInterval   int
+	activeAlarms    []alarm.AlarmMessage
+	alarmHistory    []alarm.AlarmMessage
+	mutex           sync.Mutex
+	rmrReady        bool
+	postClear       bool
+	maxActiveAlarms int
+	maxAlarmHistory int
+	alarmClient     *alarm.RICAlarm
 }
 
 type AlertStatus string
@@ -47,3 +50,4 @@ const (
 
 var Version string
 var Hash string
+

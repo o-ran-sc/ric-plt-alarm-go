@@ -104,3 +104,16 @@ func (a *AlarmManager) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
 
 	return nil
 }
+
+func (a *AlarmManager) SetAlarmConfig(w http.ResponseWriter, r *http.Request) {
+	var m alarm.AlarmConfigParams
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		app.Logger.Error("json.NewDecoder failed: %v", err)
+	} else {
+		a.maxActiveAlarms = m.MaxActiveAlarms
+		a.maxAlarmHistory = m.MaxAlarmHistory
+		app.Logger.Debug("new maxActiveAlarms = %v", a.maxActiveAlarms)
+		app.Logger.Debug("new maxAlarmHistory = %v", a.maxAlarmHistory)
+		a.respondWithJSON(w, http.StatusOK, err)
+	}
+}
