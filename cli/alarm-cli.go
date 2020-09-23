@@ -14,6 +14,10 @@ import (
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 )
 
+type CliAlarmDefinitions struct {
+        AlarmDefinitions []*alarm.AlarmDefinition `json:"alarmdefinitions"`
+}
+
 func main() {
 
 	// configure commando
@@ -85,6 +89,19 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmConfig(flags)
 		})
+	// Create alarm defenition
+	commando.
+		Register("define").
+                SetShortDescription("Define alarm with given parameters").
+                AddFlag("aid", "alarm identifier", commando.Int, nil).
+                AddFlag("atx", "alarm text", commando.String, nil).
+                AddFlag("ety", "event type", commando.String, nil).
+                AddFlag("oin", "operation instructions", commando.String, nil).
+		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+                SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+                        postAlarmDefinition(flags)
+                })
 
 	// parse command-line arguments
 	commando.Parse(nil)
@@ -194,4 +211,33 @@ func postAlarmConfig(flags map[string]commando.FlagValue) {
 		fmt.Println("Couldn't fetch post alarm configuration due to error: %v", err)
 		return
 	}
+}
+
+func postAlarmDefinition(flags map[string]commando.FlagValue) {
+        host, _ := flags["host"].GetString()
+        port, _ := flags["port"].GetString()
+        alarmid, _ := flags["aid"].GetInt()
+        alarmtxt, _ := flags["atx"].GetString()
+        etype, _ := flags["ety"].GetString()
+        operation, _ := flags["oin"].GetString()
+        targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/define", host, port)
+
+	var alarmdefinition alarm.AlarmDefinition
+        alarmdefinition.AlarmId = alarmid
+        alarmdefinition.AlarmText = alarmtxt
+        alarmdefinition.EventType = etype
+        alarmdefinition.OperationInstructions = operation
+
+	m := CliAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarmdefinition}}
+        jsonData, err := json.Marshal(m)
+        if err != nil {
+                fmt.Println("json.Marshal failed: %v", err)
+                return
+        }
+
+        resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
+        if err != nil || resp == nil {
+                fmt.Println("Couldn't fetch post alarm configuration due to error: %v", err)
+                return
+        }
 }
