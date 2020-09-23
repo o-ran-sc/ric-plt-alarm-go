@@ -47,3 +47,7 @@ const (
 
 var Version string
 var Hash string
+
+type RicAlarmDefinitions struct {
+	AlarmDefinitions []*alarm.AlarmDefinition `json:"alarmdefinitions"`
+}
