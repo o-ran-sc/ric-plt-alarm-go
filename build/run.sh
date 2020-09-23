@@ -22,7 +22,7 @@
 #	Abstract:	Starts the alarm manager service
 #	Date:		10 March 2020
 #
-export RMR_SEED_RT=./uta_rtg.rt
+export RMR_SEED_RT=./config/uta_rtg.rt
 export RMR_SRC_ID="service-ricplt-alarmmanager-rmr.ricplt"
 
-exec ./alarm-manager -f ./config-file.json
+exec ./manager/alarm-manager -f ./config/config-file.json

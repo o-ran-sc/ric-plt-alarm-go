@@ -91,38 +91,13 @@ const (
 )
 
 type AlarmDefinition struct {
-	AlarmId               int
-	AlarmText             string
-	EventType             string
-	OperationInstructions string
+	AlarmId               int  `json:"alarmid"`
+	AlarmText             string  `json:"alarmtext"`
+	EventType             string  `json:"eventtype"`
+	OperationInstructions string  `json:"operationinstructions"`
 }
 
-var RICAlarmDefinitions = map[int]AlarmDefinition{
-	RIC_RT_DISTRIBUTION_FAILED: {
-		AlarmId:               RIC_RT_DISTRIBUTION_FAILED,
-		AlarmText:             "RIC ROUTING TABLE DISTRIBUTION FAILED",
-		EventType:             "Processing error",
-		OperationInstructions: "Not defined",
-	},
-	TCP_CONNECTIVITY_LOST_TO_DBAAS: {
-		AlarmId:               TCP_CONNECTIVITY_LOST_TO_DBAAS,
-		AlarmText:             "TCP CONNECTIVITY LOST TO DBAAS",
-		EventType:             "Communication error",
-		OperationInstructions: "Not defined",
-	},
-	E2_CONNECTIVITY_LOST_TO_GNODEB: {
-		AlarmId:               E2_CONNECTIVITY_LOST_TO_GNODEB,
-		AlarmText:             "E2 CONNECTIVITY LOST TO G-NODEB",
-		EventType:             "Communication error",
-		OperationInstructions: "Not defined",
-	},
-	E2_CONNECTIVITY_LOST_TO_ENODEB: {
-		AlarmId:               E2_CONNECTIVITY_LOST_TO_ENODEB,
-		AlarmText:             "E2 CONNECTIVITY LOST TO E-NODEB",
-		EventType:             "Communication error",
-		OperationInstructions: "Not defined",
-	},
-}
+var RICAlarmDefinitions map[int]*AlarmDefinition
 
 const (
 	ALARM_MANAGER_HTTP_URL string = "http://service-ricplt-alarmmanager-http.ricplt:8080"

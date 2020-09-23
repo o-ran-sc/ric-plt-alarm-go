@@ -33,10 +33,12 @@ import (
 	"strings"
 	"testing"
 	"time"
-
+        "strconv"
+	"bytes"
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/prometheus/alertmanager/api/v2/models"
+	"github.com/gorilla/mux"
 )
 
 var alarmManager *AlarmManager
@@ -60,6 +62,110 @@ func TestMain(M *testing.M) {
 	eventChan = make(chan string)
 
 	os.Exit(M.Run())
+}
+
+func TestSetAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestSetAlarmDefinitions")
+	var alarm8004Definition alarm.AlarmDefinition
+	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
+	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
+	alarm8004Definition.EventType = "Processing error"
+	alarm8004Definition.OperationInstructions = "Not defined"
+
+	var alarm8005Definition alarm.AlarmDefinition
+	alarm8005Definition.AlarmId = alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS
+	alarm8005Definition.AlarmText = "TCP CONNECTIVITY LOST TO DBAAS"
+	alarm8005Definition.EventType = "Communication error"
+	alarm8005Definition.OperationInstructions = "Not defined"
+
+	var alarm8006Definition alarm.AlarmDefinition
+	alarm8006Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_GNODEB
+	alarm8006Definition.AlarmText = "E2 CONNECTIVITY LOST TO G-NODEB"
+	alarm8006Definition.EventType = "Communication error"
+	alarm8006Definition.OperationInstructions = "Not defined"
+
+	var alarm8007Definition alarm.AlarmDefinition
+	alarm8007Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_ENODEB
+	alarm8007Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB"
+	alarm8007Definition.EventType = "Communication error"
+	alarm8007Definition.OperationInstructions = "Not defined"
+
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition, &alarm8005Definition, &alarm8006Definition, &alarm8007Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusOK, response.Code)
+	xapp.Logger.Info("status = %v", status)
+
+}
+
+func TestGetAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestGetAlarmDefinitions")
+	var alarmDefinition alarm.AlarmDefinition
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+	json.NewDecoder(response.Body).Decode(&alarmDefinition)
+	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
+	if alarmDefinition.AlarmId != alarm.RIC_RT_DISTRIBUTION_FAILED || alarmDefinition.AlarmText != "RIC ROUTING TABLE DISTRIBUTION FAILED" {
+		t.Errorf("Incorrect alarm definition")
+	}
+}
+
+func TestDeleteAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestDeleteAlarmDefinitions")
+	//Get all
+	var ricAlarmDefinitions RicAlarmDefinitions
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+	json.NewDecoder(response.Body).Decode(&ricAlarmDefinitions)
+	for _, alarmDefinition := range ricAlarmDefinitions.AlarmDefinitions {
+		xapp.Logger.Info("alarm definition = %v", *alarmDefinition)
+	}
+
+	//Delete 8004
+	req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+        vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+        req = mux.SetURLVars(req, vars)
+        handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+        response = executeRequest(req, handleFunc)
+        checkResponseCode(t, http.StatusOK, response.Code)
+
+	//Get 8004 fail
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	//Set 8004 success
+	var alarm8004Definition alarm.AlarmDefinition
+	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
+	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
+	alarm8004Definition.EventType = "Processing error"
+	alarm8004Definition.OperationInstructions = "Not defined"
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ = http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc = http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	//Get 8004 success
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
 }
 
 func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
@@ -203,4 +309,20 @@ func fireEvent(t *testing.T, body io.ReadCloser) {
 	assert.NotNil(t, reqBody, "ioutil.ReadAll failed")
 
 	eventChan <- fmt.Sprintf("%s", reqBody)
+}
+
+func executeRequest(req *http.Request, handleR http.HandlerFunc) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+
+	handleR.ServeHTTP(rr, req)
+
+	return rr
+}
+
+func checkResponseCode(t *testing.T, expected, actual int) bool {
+	if expected != actual {
+		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+		return false
+	}
+	return true
 }
