@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a93c94c3_d7f87d31",
+        "filename": "alarm/types.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1000031
+      },
+      "writtenOn": "2020-09-24T06:43:01Z",
+      "side": 1,
+      "message": "Should this be renamed to ACTIVE_ALARM_EXCEED_MAX_THRESHOLD? Same comment for the alarm history.",
+      "revId": "b21fd4321ecc14c40644cc9ebc591400375052fc",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d9e5bf3_c5f95863",
+        "filename": "build/run.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000031
+      },
+      "writtenOn": "2020-09-24T06:43:01Z",
+      "side": 1,
+      "message": "This will not work. The RT file is not under config-folder.",
+      "revId": "b21fd4321ecc14c40644cc9ebc591400375052fc",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2636ad2c_a40b8285",
+        "filename": "build/run.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000031
+      },
+      "writtenOn": "2020-09-24T06:43:01Z",
+      "side": 1,
+      "message": "Same comment as above",
+      "revId": "b21fd4321ecc14c40644cc9ebc591400375052fc",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c827a132_704dc845",
+        "filename": "manager/cmd/restapi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1000031
+      },
+      "writtenOn": "2020-09-24T06:43:01Z",
+      "side": 1,
+      "message": "Getting alarm configuration would be useful.",
+      "revId": "b21fd4321ecc14c40644cc9ebc591400375052fc",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
