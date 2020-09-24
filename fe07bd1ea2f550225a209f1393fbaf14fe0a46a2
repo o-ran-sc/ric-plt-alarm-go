@@ -1,0 +1,8 @@
+Verified+1: ORAN Jobbuilder <releng+oran-jobbuilder@linuxfoundation.org>
+Code-Review+1: Vipin Mavila <vipin.mavila@nokia.com>
+Code-Review+2: Abukar Mohamed <abukar.mohamed@nokia.com>
+Submitted-by: Abukar Mohamed <abukar.mohamed@nokia.com>
+Submitted-at: Thu, 24 Sep 2020 12:41:52 +0000
+Reviewed-on: https://gerrit.o-ran-sc.org/r/c/ric-plt/alarm-go/+/4769
+Project: ric-plt/alarm-go
+Branch: refs/heads/master
