@@ -82,10 +82,17 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 
 	// Suppress duplicate alarms
 	idx, found := a.IsMatchFound(m.Alarm)
-	if found && m.AlarmAction != alarm.AlarmActionClear {
+	if found && m.AlarmAction == alarm.AlarmActionRaise  {
 		app.Logger.Info("Duplicate alarm found, suppressing ...")
-		return nil, nil
+		if m.PerceivedSeverity == a.activeAlarms[idx].PerceivedSeverity {
+			// Duplicate with same severity found
+			return nil, nil
+		} else {
+			// Remove duplicate with different severity
+			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
+		}
 	}
+
 
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
