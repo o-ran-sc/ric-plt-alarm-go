@@ -232,12 +232,17 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Resource.InjectStatusCb(a.StatusCB)
 	app.AddConfigChangeListener(a.ConfigChangeCB)
 
+	alarm.RICAlarmDefinitions = make(map[int]*alarm.AlarmDefinition)
+
 	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
 	app.Resource.InjectRoute("/ric/v1/alarms/active", a.GetActiveAlarms, "GET")
 	app.Resource.InjectRoute("/ric/v1/alarms/history", a.GetAlarmHistory, "GET")
 	app.Resource.InjectRoute("/ric/v1/alarms/config", a.SetAlarmConfig, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms/config", a.GetAlarmConfig, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/define", a.SetAlarmDefinition, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.DeleteAlarmDefinition, "DELETE")
+	app.Resource.InjectRoute("/ric/v1/alarms/define", a.GetAlarmDefinition, "GET")
 
 	// Start background timer for re-raising alerts
 	a.postClear = sdlcheck

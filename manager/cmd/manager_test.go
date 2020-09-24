@@ -34,6 +34,8 @@ import (
 	"testing"
 	"time"
         "github.com/gorilla/mux"
+        "strconv"
+	"bytes"
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/prometheus/alertmanager/api/v2/models"
@@ -63,7 +65,124 @@ func TestMain(M *testing.M) {
 	os.Exit(M.Run())
 }
 
+func TestSetAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestSetAlarmDefinitions")
+	var alarm8004Definition alarm.AlarmDefinition
+	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
+	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
+	alarm8004Definition.EventType = "Processing error"
+	alarm8004Definition.OperationInstructions = "Not defined"
+
+	var alarm8005Definition alarm.AlarmDefinition
+	alarm8005Definition.AlarmId = alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS
+	alarm8005Definition.AlarmText = "TCP CONNECTIVITY LOST TO DBAAS"
+	alarm8005Definition.EventType = "Communication error"
+	alarm8005Definition.OperationInstructions = "Not defined"
+
+	var alarm8006Definition alarm.AlarmDefinition
+	alarm8006Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_GNODEB
+	alarm8006Definition.AlarmText = "E2 CONNECTIVITY LOST TO G-NODEB"
+	alarm8006Definition.EventType = "Communication error"
+	alarm8006Definition.OperationInstructions = "Not defined"
+
+	var alarm8007Definition alarm.AlarmDefinition
+	alarm8007Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_ENODEB
+	alarm8007Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB"
+	alarm8007Definition.EventType = "Communication error"
+	alarm8007Definition.OperationInstructions = "Not defined"
+
+	var alarm8008Definition alarm.AlarmDefinition
+	alarm8008Definition.AlarmId = alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD
+	alarm8008Definition.AlarmText = "ACTIVE ALARM EXCEED MAX THRESHOLD"
+	alarm8008Definition.EventType = "storage warning"
+	alarm8008Definition.OperationInstructions = "clear alarms or raise threshold"
+
+	var alarm8009Definition alarm.AlarmDefinition
+	alarm8009Definition.AlarmId = alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD
+	alarm8009Definition.AlarmText = "ALARM HISTORY EXCEED MAX THRESHOLD"
+	alarm8009Definition.EventType = "storage warning"
+	alarm8009Definition.OperationInstructions = "clear alarms or raise threshold"
+
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition, &alarm8005Definition, &alarm8006Definition, &alarm8007Definition, &alarm8008Definition, &alarm8009Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusOK, response.Code)
+	xapp.Logger.Info("status = %v", status)
+
+}
+
+func TestGetAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestGetAlarmDefinitions")
+	var alarmDefinition alarm.AlarmDefinition
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+	json.NewDecoder(response.Body).Decode(&alarmDefinition)
+	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
+	if alarmDefinition.AlarmId != alarm.RIC_RT_DISTRIBUTION_FAILED || alarmDefinition.AlarmText != "RIC ROUTING TABLE DISTRIBUTION FAILED" {
+		t.Errorf("Incorrect alarm definition")
+	}
+}
+
+func TestDeleteAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestDeleteAlarmDefinitions")
+	//Get all
+	var ricAlarmDefinitions RicAlarmDefinitions
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+	json.NewDecoder(response.Body).Decode(&ricAlarmDefinitions)
+	for _, alarmDefinition := range ricAlarmDefinitions.AlarmDefinitions {
+		xapp.Logger.Info("alarm definition = %v", *alarmDefinition)
+	}
+
+	//Delete 8004
+	req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+        vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+        req = mux.SetURLVars(req, vars)
+        handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+        response = executeRequest(req, handleFunc)
+        checkResponseCode(t, http.StatusOK, response.Code)
+
+	//Get 8004 fail
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	//Set 8004 success
+	var alarm8004Definition alarm.AlarmDefinition
+	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
+	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
+	alarm8004Definition.EventType = "Processing error"
+	alarm8004Definition.OperationInstructions = "Not defined"
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ = http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc = http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	//Get 8004 success
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+}
+
 func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
+	xapp.Logger.Info("TestNewAlarmStoredAndPostedSucess")
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
@@ -74,6 +193,7 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 }
 
 func TestAlarmClearedSucess(t *testing.T) {
+	xapp.Logger.Info("TestAlarmClearedSucess")
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
@@ -92,6 +212,7 @@ func TestAlarmClearedSucess(t *testing.T) {
 }
 
 func TestMultipleAlarmsRaisedSucess(t *testing.T) {
+	xapp.Logger.Info("TestMultipleAlarmsRaisedSucess")
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
@@ -107,6 +228,7 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 }
 
 func TestMultipleAlarmsClearedSucess(t *testing.T) {
+	xapp.Logger.Info("TestMultipleAlarmsClearedSucess")
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
@@ -122,6 +244,7 @@ func TestMultipleAlarmsClearedSucess(t *testing.T) {
 }
 
 func TestAlarmsSuppresedSucess(t *testing.T) {
+	xapp.Logger.Info("TestAlarmsSuppresedSucess")
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
@@ -136,23 +259,27 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 
 
 func TestInvalidAlarms(t *testing.T) {
+	xapp.Logger.Info("TestInvalidAlarms")
 	a := alarmer.NewAlarm(1111, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	time.Sleep(time.Duration(2) * time.Second)
 }
 
 func TestAlarmHandlingErrorCases(t *testing.T) {
+	xapp.Logger.Info("TestAlarmHandlingErrorCases")
 	ok, err := alarmManager.HandleAlarms(&xapp.RMRParams{})
 	assert.Equal(t, err.Error(), "unexpected end of JSON input")
 	assert.Nil(t, ok, "raise failed")
 }
 
 func TestConsumeUnknownMessage(t *testing.T) {
+	xapp.Logger.Info("TestConsumeUnknownMessage")
 	err := alarmManager.Consume(&xapp.RMRParams{})
 	assert.Nil(t, err, "raise failed")
 }
 
 func TestStatusCallback(t *testing.T) {
+	xapp.Logger.Info("TestStatusCallback")
 	assert.Equal(t, true, alarmManager.StatusCB())
 }
 
@@ -255,4 +382,3 @@ func checkResponseCode(t *testing.T, expected, actual int) bool {
 	}
 	return true
 }
-

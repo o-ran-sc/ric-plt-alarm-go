@@ -22,12 +22,17 @@ package main
 
 import (
 	"encoding/json"
-	"net/http"
-	"time"
-
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
+	"github.com/gorilla/mux"
+	"net/http"
+	"strconv"
+	"time"
 )
+
+func (a *AlarmManager) respondWithError(w http.ResponseWriter, code int, message string) {
+	a.respondWithJSON(w, code, map[string]string{"error": message})
+}
 
 func (a *AlarmManager) respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -57,6 +62,95 @@ func (a *AlarmManager) RaiseAlarm(w http.ResponseWriter, r *http.Request) {
 func (a *AlarmManager) ClearAlarm(w http.ResponseWriter, r *http.Request) {
 	if err := a.doAction(w, r, false); err != nil {
 		a.respondWithJSON(w, http.StatusOK, err)
+	}
+}
+
+func (a *AlarmManager) SetAlarmDefinition(w http.ResponseWriter, r *http.Request) {
+
+	app.Logger.Debug("POST arrived for creating alarm definition ")
+	/* If body is nil then return error */
+	if r.Body == nil {
+		app.Logger.Error("POST - body is empty")
+		a.respondWithError(w, http.StatusBadRequest, "No data in request body.")
+		return
+	}
+	defer r.Body.Close()
+
+	/* Parameters are available. Check if they are valid */
+	var alarmDefinitions RicAlarmDefinitions
+	err := json.NewDecoder(r.Body).Decode(&alarmDefinitions)
+	if err != nil {
+		app.Logger.Error("POST - received alarm definition  parameters are invalid - " + err.Error())
+		a.respondWithError(w, http.StatusBadRequest, "Invalid data in request body.")
+		return
+	}
+
+	for _, alarmDefinition := range alarmDefinitions.AlarmDefinitions {
+		_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
+		if exists {
+			app.Logger.Error("POST - alarm definition already exists for %v", alarmDefinition.AlarmId)
+		} else {
+			ricAlarmDefintion := new(alarm.AlarmDefinition)
+			ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
+			ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
+			ricAlarmDefintion.EventType = alarmDefinition.EventType
+			ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+			alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
+		}
+	}
+
+	a.respondWithJSON(w, http.StatusOK, nil)
+	return
+}
+
+func (a *AlarmManager) DeleteAlarmDefinition(w http.ResponseWriter, r *http.Request) {
+	pathParams := mux.Vars(r)
+	alarmId, alarmIdok := pathParams["alarmId"]
+	if alarmIdok {
+		if ialarmId, err := strconv.Atoi(alarmId); err == nil {
+			delete(alarm.RICAlarmDefinitions, ialarmId)
+		} else {
+			app.Logger.Error("DELETE - alarmId string to int conversion failed %v", alarmId)
+			a.respondWithError(w, http.StatusBadRequest, "Invalid path parameter")
+			return
+		}
+	} else {
+		app.Logger.Error("DELETE - alarmId does not exist %v", alarmId)
+		a.respondWithError(w, http.StatusBadRequest, "Invalid path parameter")
+		return
+
+	}
+}
+
+func (a *AlarmManager) GetAlarmDefinition(w http.ResponseWriter, r *http.Request) {
+	var ricAlarmDefinitions RicAlarmDefinitions
+	pathParams := mux.Vars(r)
+	alarmId, alarmIdok := pathParams["alarmId"]
+	if alarmIdok {
+		if ialarmId, err := strconv.Atoi(alarmId); err == nil {
+			alarmDefinition, ok := alarm.RICAlarmDefinitions[ialarmId]
+			if ok {
+				app.Logger.Debug("Successfully returned alarm defintion for alarm id %v", ialarmId)
+				a.respondWithJSON(w, http.StatusOK, alarmDefinition)
+				return
+
+			} else {
+				app.Logger.Error("Requested alarm id not found %v", ialarmId)
+				a.respondWithError(w, http.StatusBadRequest, "Non existent alarmId")
+				return
+			}
+		} else {
+			app.Logger.Error("alarmId string to int conversion failed %v", alarmId)
+			a.respondWithError(w, http.StatusBadRequest, "Invalid alarmId")
+			return
+		}
+	} else {
+		app.Logger.Debug("GET arrived for all alarm definitions ")
+		for _, alarmDefinition := range alarm.RICAlarmDefinitions {
+			ricAlarmDefinitions.AlarmDefinitions = append(ricAlarmDefinitions.AlarmDefinitions, alarmDefinition)
+		}
+		app.Logger.Debug("Successfully returned all alarm definitions")
+		a.respondWithJSON(w, http.StatusOK, ricAlarmDefinitions)
 	}
 }
 
