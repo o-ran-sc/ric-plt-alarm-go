@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a23e645e_8ce0cdaf",
+        "filename": "manager/cmd/manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000033
+      },
+      "writtenOn": "2020-09-24T08:00:46Z",
+      "side": 1,
+      "message": "Comment should be changed. Now there is added two alarms every time after alarm limit is exceeded. Is this correct functionality?",
+      "range": {
+        "startLine": 136,
+        "startChar": 1,
+        "endLine": 136,
+        "endChar": 73
+      },
+      "revId": "b7e38453c9a4951eab32b000b750b3dbf9644e2d",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b60178ea_b2207579",
+        "filename": "manager/cmd/manager.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1000033
+      },
+      "writtenOn": "2020-09-24T08:00:46Z",
+      "side": 1,
+      "message": "/ 1000 should be removed",
+      "range": {
+        "startLine": 148,
+        "startChar": 108,
+        "endLine": 148,
+        "endChar": 137
+      },
+      "revId": "b7e38453c9a4951eab32b000b750b3dbf9644e2d",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53",
+      "unresolved": true
+    }
+  ]
+}
