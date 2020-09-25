@@ -21,8 +21,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
@@ -30,15 +35,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
-        "github.com/gorilla/mux"
-        "strconv"
-	"bytes"
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
-	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
-	"github.com/prometheus/alertmanager/api/v2/models"
 )
 
 var alarmManager *AlarmManager
@@ -145,11 +145,11 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 
 	//Delete 8004
 	req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
-        vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
-        req = mux.SetURLVars(req, vars)
-        handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
-        response = executeRequest(req, handleFunc)
-        checkResponseCode(t, http.StatusOK, response.Code)
+	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
 
 	//Get 8004 fail
 	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
@@ -256,7 +256,6 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	VerifyAlarm(t, a, 1)
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 }
-
 
 func TestInvalidAlarms(t *testing.T) {
 	xapp.Logger.Info("TestInvalidAlarms")
