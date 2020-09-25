@@ -68,8 +68,8 @@ type AlarmMessage struct {
 }
 
 type AlarmConfigParams struct {
-        MaxActiveAlarms int `json:"maxactivealarms"`
-        MaxAlarmHistory int `json:"maxalarmhistory"`
+	MaxActiveAlarms int `json:"maxactivealarms"`
+	MaxAlarmHistory int `json:"maxalarmhistory"`
 }
 
 // RICAlarm is an alarm instance
@@ -89,19 +89,19 @@ const (
 
 // Temp alarm constants & definitions
 const (
-	RIC_RT_DISTRIBUTION_FAILED     int = 8004
-	TCP_CONNECTIVITY_LOST_TO_DBAAS int = 8005
-	E2_CONNECTIVITY_LOST_TO_GNODEB int = 8006
-	E2_CONNECTIVITY_LOST_TO_ENODEB int = 8007
-	ACTIVE_ALARM_EXCEED_MAX_THRESHOLD int = 8008
+	RIC_RT_DISTRIBUTION_FAILED         int = 8004
+	TCP_CONNECTIVITY_LOST_TO_DBAAS     int = 8005
+	E2_CONNECTIVITY_LOST_TO_GNODEB     int = 8006
+	E2_CONNECTIVITY_LOST_TO_ENODEB     int = 8007
+	ACTIVE_ALARM_EXCEED_MAX_THRESHOLD  int = 8008
 	ALARM_HISTORY_EXCEED_MAX_THRESHOLD int = 8009
 )
 
 type AlarmDefinition struct {
-	AlarmId               int  `json:"alarmid"`
-	AlarmText             string  `json:"alarmtext"`
-	EventType             string  `json:"eventtype"`
-	OperationInstructions string  `json:"operationinstructions"`
+	AlarmId               int    `json:"alarmid"`
+	AlarmText             string `json:"alarmtext"`
+	EventType             string `json:"eventtype"`
+	OperationInstructions string `json:"operationinstructions"`
 }
 
 var RICAlarmDefinitions map[int]*AlarmDefinition

@@ -82,7 +82,7 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 
 	// Suppress duplicate alarms
 	idx, found := a.IsMatchFound(m.Alarm)
-	if found && m.AlarmAction == alarm.AlarmActionRaise  {
+	if found && m.AlarmAction == alarm.AlarmActionRaise {
 		app.Logger.Info("Duplicate alarm found, suppressing ...")
 		if m.PerceivedSeverity == a.activeAlarms[idx].PerceivedSeverity {
 			// Duplicate with same severity found
@@ -92,7 +92,6 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
 		}
 	}
-
 
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
@@ -243,6 +242,7 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Resource.InjectRoute("/ric/v1/alarms/define", a.SetAlarmDefinition, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.DeleteAlarmDefinition, "DELETE")
 	app.Resource.InjectRoute("/ric/v1/alarms/define", a.GetAlarmDefinition, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
 
 	// Start background timer for re-raising alerts
 	a.postClear = sdlcheck

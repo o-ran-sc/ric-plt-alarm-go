@@ -109,6 +109,7 @@ func (a *AlarmManager) DeleteAlarmDefinition(w http.ResponseWriter, r *http.Requ
 	if alarmIdok {
 		if ialarmId, err := strconv.Atoi(alarmId); err == nil {
 			delete(alarm.RICAlarmDefinitions, ialarmId)
+			app.Logger.Debug("DELETE - alarm definition deleted for alarmId %v", ialarmId)
 		} else {
 			app.Logger.Error("DELETE - alarmId string to int conversion failed %v", alarmId)
 			a.respondWithError(w, http.StatusBadRequest, "Invalid path parameter")
