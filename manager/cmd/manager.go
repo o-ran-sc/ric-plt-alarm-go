@@ -218,9 +218,13 @@ func (a *AlarmManager) ConfigChangeCB(configparam string) {
 
 	a.maxActiveAlarms = app.Config.GetInt("controls.maxActiveAlarms")
 	a.maxAlarmHistory = app.Config.GetInt("controls.maxAlarmHistory")
+	a.alertInterval = viper.GetInt("controls.promAlertManager.alertInterval")
+	a.amHost = viper.GetString("controls.promAlertManager.address")
 
 	app.Logger.Debug("ConfigChangeCB: maxActiveAlarms %v", a.maxActiveAlarms)
 	app.Logger.Debug("ConfigChangeCB: maxAlarmHistory = %v", a.maxAlarmHistory)
+	app.Logger.Debug("ConfigChangeCB: alertInterval %v", a.alertInterval)
+	app.Logger.Debug("ConfigChangeCB: amHost = %v", a.amHost)
 
 	return
 }
