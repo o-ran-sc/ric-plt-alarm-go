@@ -37,6 +37,7 @@ COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
 COPY --from=ubuntu-alarm-manager /go/src/am/config/* /
 COPY --from=ubuntu-alarm-manager /usr/local/lib /usr/local/lib
+COPY --from=ubuntu-alarm-manager /go/src/am/definitions/* / 
 
 RUN ldconfig
 

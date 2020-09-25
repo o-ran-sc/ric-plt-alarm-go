@@ -50,7 +50,7 @@ func TestMain(M *testing.M) {
 	os.Setenv("ALARM_IF_RMR", "true")
 	alarmManager = NewAlarmManager("localhost:9093", 500)
 	go alarmManager.Run(false)
-	time.Sleep(time.Duration(2) * time.Second)
+	time.Sleep(time.Duration(10) * time.Second)
 
 	// Wait until RMR is up-and-running
 	for !xapp.Rmr.IsReady() {
@@ -63,6 +63,22 @@ func TestMain(M *testing.M) {
 	eventChan = make(chan string)
 
 	os.Exit(M.Run())
+}
+
+func TestGetPreDefinedAlarmDefinitions(t *testing.T) {
+	xapp.Logger.Info("TestGetPreDefinedAlarmDefinitions")
+	var alarmDefinition alarm.AlarmDefinition
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+	json.NewDecoder(response.Body).Decode(&alarmDefinition)
+	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
+	if alarmDefinition.AlarmId != alarm.RIC_RT_DISTRIBUTION_FAILED || alarmDefinition.AlarmText != "RIC ROUTING TABLE DISTRIBUTION FAILED" {
+		t.Errorf("Incorrect alarm definition")
+	}
 }
 
 func TestSetAlarmDefinitions(t *testing.T) {
@@ -95,13 +111,13 @@ func TestSetAlarmDefinitions(t *testing.T) {
 	alarm8008Definition.AlarmId = alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD
 	alarm8008Definition.AlarmText = "ACTIVE ALARM EXCEED MAX THRESHOLD"
 	alarm8008Definition.EventType = "storage warning"
-	alarm8008Definition.OperationInstructions = "clear alarms or raise threshold"
+	alarm8008Definition.OperationInstructions = "Clear alarms or raise threshold"
 
 	var alarm8009Definition alarm.AlarmDefinition
 	alarm8009Definition.AlarmId = alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD
 	alarm8009Definition.AlarmText = "ALARM HISTORY EXCEED MAX THRESHOLD"
 	alarm8009Definition.EventType = "storage warning"
-	alarm8009Definition.OperationInstructions = "clear alarms or raise threshold"
+	alarm8009Definition.OperationInstructions = "Clear alarms or raise threshold"
 
 	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition, &alarm8005Definition, &alarm8006Definition, &alarm8007Definition, &alarm8008Definition, &alarm8009Definition}}
 	pbodyEn, _ := json.Marshal(pbodyParams)

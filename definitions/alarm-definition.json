@@ -1,0 +1,40 @@
+{
+    "alarmdefinitions" : [
+        {
+            "alarmId" : 8004,
+            "alarmText" : "RIC ROUTING TABLE DISTRIBUTION FAILED",
+            "eventType" : "Processing error",
+            "operationInstructions" : "Not defined"
+        },
+        {
+            "alarmId" : 8005,
+            "alarmText" : "TCP CONNECTIVITY LOST TO DBAAS",
+            "eventType" : "Communication error",
+            "operationInstructions" : "Not defined"
+        },
+        {
+            "alarmId" : 8006,
+            "alarmText" : "E2 CONNECTIVITY LOST TO G-NODEB",
+            "eventType" : "Communication error",
+            "operationInstructions" : "Not defined"
+        },
+        {
+            "alarmId" : 8007,
+            "alarmText" : "E2 CONNECTIVITY LOST TO E-NODEB",
+            "eventType" : "Communication error",
+            "operationInstructions" : "Not defined"
+        },
+        {
+            "alarmId" : 8008,
+            "alarmText" : "ACTIVE ALARM EXCEED MAX THRESHOLD",
+            "eventType" : "storage warning",
+            "operationInstructions" : "Clear alarms or raise threshold"
+        },
+        {
+            "alarmId" : 8009,
+            "alarmText" : "ALARM HISTORY EXCEED MAX THRESHOLD",
+            "eventType" : "storage warning",
+            "operationInstructions" : "Clear alarms or raise threshold"
+        }
+   ]
+}

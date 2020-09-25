@@ -24,16 +24,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
+        "os"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	clientruntime "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/prometheus/alertmanager/api/v2/client"
 	"github.com/prometheus/alertmanager/api/v2/client/alert"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/spf13/viper"
-
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
-	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
+	"io/ioutil"
 )
 
 func (a *AlarmManager) StartAlertTimer() {
@@ -225,6 +225,36 @@ func (a *AlarmManager) ConfigChangeCB(configparam string) {
 	return
 }
 
+func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
+
+	filename := os.Getenv("DEF_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := RicAlarmDefinitions{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmDefinition := range data.AlarmDefinitions {
+				_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
+				if exists {
+					app.Logger.Error("ReadAlarmDefinitionFromJson: alarm definition already exists for %v", alarmDefinition.AlarmId)
+				} else {
+					app.Logger.Debug("ReadAlarmDefinitionFromJson: alarm  %v", alarmDefinition.AlarmId)
+					ricAlarmDefintion := new(alarm.AlarmDefinition)
+					ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
+					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
+					ricAlarmDefintion.EventType = alarmDefinition.EventType
+					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
+				}
+			}
+		} else {
+			app.Logger.Error("json.Unmarshal failed with error %v", err)
+		}
+	} else {
+		app.Logger.Error("ioutil.ReadFile failed with error %v", err)
+	}
+}
+
 func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
@@ -232,6 +262,7 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	app.AddConfigChangeListener(a.ConfigChangeCB)
 
 	alarm.RICAlarmDefinitions = make(map[int]*alarm.AlarmDefinition)
+	a.ReadAlarmDefinitionFromJson()
 
 	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
