@@ -42,6 +42,9 @@ export PATH=$GOPATH/bin:$PATH
 export CFG_FILE=../config/config-file.json
 export RMR_SEED_RT=../config/uta_rtg.rt
 
+# xApp stuff
+export DEF_FILE=../definitions/alarm-definition.json
+
 GO111MODULE=on GO_ENABLED=0 GOOS=linux
 
 # setup version tag

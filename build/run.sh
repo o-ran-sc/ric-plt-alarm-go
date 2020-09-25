@@ -24,5 +24,6 @@
 #
 export RMR_SEED_RT=./uta_rtg.rt
 export RMR_SRC_ID="service-ricplt-alarmmanager-rmr.ricplt"
+export DEF_FILE=./alarm-definition.json
 
 exec ./alarm-manager -f ./config-file.json
