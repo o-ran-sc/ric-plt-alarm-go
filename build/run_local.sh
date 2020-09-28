@@ -24,5 +24,6 @@
 #
 export RMR_SEED_RT=$PWD/config/uta_rtg.rt
 export RMR_SRC_ID="service-ricplt-alarmmanager-rmr.ricplt"
+export DEF_FILE=$PWD/definitions/alarm-definition.json
 
 $PWD/manager/alarm-manager -f $PWD/config/config-file.json
