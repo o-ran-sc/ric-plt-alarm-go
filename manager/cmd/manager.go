@@ -23,8 +23,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-        "os"
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	clientruntime "github.com/go-openapi/runtime/client"
@@ -34,6 +32,8 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"os"
+	"time"
 )
 
 func (a *AlarmManager) StartAlertTimer() {
@@ -98,7 +98,13 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 		if found {
 			a.alarmHistory = append(a.alarmHistory, *m)
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
-
+			if len(a.alarmHistory) >= a.maxAlarmHistory {
+				app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
+				histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "clear alarms or raise threshold", "alarm history full")
+				histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
+				a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
+				a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
+			}
 			if a.postClear {
 				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved, m.AlarmTime))
 			}
