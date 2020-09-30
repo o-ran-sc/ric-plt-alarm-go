@@ -4,18 +4,23 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/jedib0t/go-pretty/table"
-	"github.com/thatisuday/commando"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
-        "strconv"
+
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/thatisuday/commando"
 )
 
 type CliAlarmDefinitions struct {
 	AlarmDefinitions []*alarm.AlarmDefinition `json:"alarmdefinitions"`
+}
+
+type AlarmClient struct {
+	alarmer *alarm.RICAlarm
 }
 
 func main() {
@@ -60,6 +65,7 @@ func main() {
 		AddFlag("aai", "Application additional info", commando.String, "-").
 		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise)
 		})
@@ -74,6 +80,7 @@ func main() {
 		AddFlag("iinfo", "Application identifying info", commando.String, nil).
 		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear)
 		})
@@ -89,7 +96,7 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmConfig(flags)
 		})
-	// Create alarm defenition
+	// Create alarm definition
 	commando.
 		Register("define").
 		SetShortDescription("Define alarm with given parameters").
@@ -102,7 +109,7 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmDefinition(flags)
 		})
-		// Delete alarm defenition
+		// Delete alarm definition
 	commando.
 		Register("undefine").
 		SetShortDescription("Define alarm with given parameters").
@@ -131,7 +138,6 @@ func readAlarmParams(flags map[string]commando.FlagValue, clear bool) (a alarm.A
 	if !clear {
 		a.AdditionalInfo, _ = flags["aai"].GetString()
 	}
-
 	return
 }
 
@@ -158,6 +164,30 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 }
 
 func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.AlarmAction) {
+
+	// Check the interface to be used for raise or clear the alarm
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		alarmClient := NewAlarmClient("my-pod", "my-app")
+		if alarmClient == nil {
+			return
+		}
+
+		// Wait until RMR is up-and-running
+		for !alarmClient.alarmer.IsRMRReady() {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		if action == alarm.AlarmActionRaise {
+			alarmClient.alarmer.Raise(a)
+		}
+
+		if action == alarm.AlarmActionClear {
+			alarmClient.alarmer.Clear(a)
+		}
+		return
+	}
+
 	host, _ := flags["host"].GetString()
 	port, _ := flags["port"].GetString()
 	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
@@ -270,4 +300,16 @@ func deleteAlarmDefinition(flags map[string]commando.FlagValue) {
 		fmt.Println("Couldn't send delete request due to error: %v", err)
 		return
 	}
+}
+
+// NewAlarmClient returns a new AlarmClient.
+func NewAlarmClient(moId, appId string) *AlarmClient {
+	alarmInstance, err := alarm.InitAlarm(moId, appId)
+	if err == nil {
+		return &AlarmClient{
+			alarmer: alarmInstance,
+		}
+	}
+	fmt.Println("Failed to create alarmInstance", err)
+	return nil
 }

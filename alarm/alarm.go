@@ -55,10 +55,9 @@ func InitAlarm(mo, id string) (*RICAlarm, error) {
 		r.managerUrl = os.Getenv("ALARM_MANAGER_URL")
 	}
 
-	if os.Getenv("ALARM_IF_RMR") != "" {
+	if os.Getenv("ALARM_IF_RMR") == "" {
 		go InitRMR(r)
 	}
-
 	return r, nil
 }
 
@@ -136,6 +135,7 @@ func (r *RICAlarm) AlarmString(a AlarmMessage) string {
 }
 
 func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
+
 	payload, err := json.Marshal(a)
 	if err != nil {
 		log.Println("json.Marshal failed with error: ", err)
@@ -162,6 +162,7 @@ func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 		log.Println("rmrSend failed with error: ", state)
 		return errors.New(fmt.Sprintf("rmrSend failed with error: %d", state))
 	}
+
 	return nil
 }
 
@@ -203,4 +204,8 @@ func InitRMR(r *RICAlarm) error {
 	}
 
 	return errors.New("rmrInit failed!")
+}
+
+func (r *RICAlarm) IsRMRReady() bool {
+	return r.rmrReady
 }

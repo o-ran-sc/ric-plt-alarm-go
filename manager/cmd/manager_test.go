@@ -47,7 +47,6 @@ var eventChan chan string
 
 // Test cases
 func TestMain(M *testing.M) {
-	os.Setenv("ALARM_IF_RMR", "true")
 	alarmManager = NewAlarmManager("localhost:9093", 500)
 	go alarmManager.Run(false)
 	time.Sleep(time.Duration(10) * time.Second)
