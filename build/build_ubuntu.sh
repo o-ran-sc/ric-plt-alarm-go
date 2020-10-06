@@ -44,6 +44,8 @@ export RMR_SEED_RT=../config/uta_rtg.rt
 
 # xApp stuff
 export DEF_FILE=../definitions/alarm-definition.json
+export PERF_DEF_FILE=../definitions/perf-alarm-definition.json
+export PERF_OBJ_FILE=../cli/perf-alarm-object.json
 
 GO111MODULE=on GO_ENABLED=0 GOOS=linux
 

@@ -54,3 +54,7 @@ var Hash string
 type RicAlarmDefinitions struct {
 	AlarmDefinitions []*alarm.AlarmDefinition `json:"alarmdefinitions"`
 }
+
+type RicPerfAlarmObjects struct {
+	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
+}

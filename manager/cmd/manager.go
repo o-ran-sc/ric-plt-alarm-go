@@ -258,10 +258,40 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 				}
 			}
 		} else {
-			app.Logger.Error("json.Unmarshal failed with error %v", err)
+			app.Logger.Error("ReadAlarmDefinitionFromJson: json.Unmarshal failed with error %v", err)
 		}
 	} else {
-		app.Logger.Error("ioutil.ReadFile failed with error %v", err)
+		app.Logger.Error("ReadAlarmDefinitionFromJson: ioutil.ReadFile failed with error %v", err)
+	}
+}
+
+func (a *AlarmManager) ReadPerfAlarmDefinitionFromJson() {
+
+	filename := os.Getenv("PERF_DEF_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := RicAlarmDefinitions{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmDefinition := range data.AlarmDefinitions {
+				_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
+				if exists {
+					app.Logger.Error("ReadPerfAlarmDefinitionFromJson: alarm definition already exists for %v", alarmDefinition.AlarmId)
+				} else {
+					app.Logger.Debug("ReadPerfAlarmDefinitionFromJson: alarm  %v", alarmDefinition.AlarmId)
+					ricAlarmDefintion := new(alarm.AlarmDefinition)
+					ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
+					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
+					ricAlarmDefintion.EventType = alarmDefinition.EventType
+					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
+				}
+			}
+		} else {
+			app.Logger.Error("ReadPerfAlarmDefinitionFromJson: json.Unmarshal failed with error %v", err)
+		}
+	} else {
+		app.Logger.Error("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error %v", err)
 	}
 }
 
@@ -273,6 +303,7 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 
 	alarm.RICAlarmDefinitions = make(map[int]*alarm.AlarmDefinition)
 	a.ReadAlarmDefinitionFromJson()
+	a.ReadPerfAlarmDefinitionFromJson()
 
 	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")

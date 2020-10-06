@@ -13,6 +13,7 @@ import (
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/thatisuday/commando"
+	"sync"
 )
 
 type CliAlarmDefinitions struct {
@@ -23,7 +24,26 @@ type AlarmClient struct {
 	alarmer *alarm.RICAlarm
 }
 
+type RicPerfAlarmObjects struct {
+	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
+}
+
+var CLIPerfAlarmObjects map[int]*alarm.Alarm
+
+var wg sync.WaitGroup
+
+const (
+	Raise             string = "RAISE"
+	Clear             string = "CLEAR"
+	End               string = "END"
+	PeakTestDuration  int    = 180
+	OneSecondDuration int    = 1
+)
+
 func main() {
+
+	CLIPerfAlarmObjects = make(map[int]*alarm.Alarm)
+	readPerfAlarmObjectFromJson()
 
 	// configure commando
 	commando.
@@ -67,7 +87,7 @@ func main() {
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise)
+			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise, nil)
 		})
 
 	// Clear an alarm
@@ -82,7 +102,7 @@ func main() {
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear)
+			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear, nil)
 		})
 
 	// Configure an alarm manager
@@ -118,6 +138,20 @@ func main() {
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			deleteAlarmDefinition(flags)
+		})
+		// Conduct performance test for alarm-go
+	commando.
+		Register("perf").
+		SetShortDescription("Conduct performance test with given parameters").
+		AddFlag("prf", "performance profile id", commando.Int, nil).
+		AddFlag("nal", "number of alarms", commando.Int, nil).
+		AddFlag("aps", "alarms per sec", commando.Int, nil).
+		AddFlag("tim", "total time of test", commando.Int, nil).
+		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+		AddFlag("if", "http or rmr used as interface", commando.String, "http").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			conductperformancetest(flags)
 		})
 
 	// parse command-line arguments
@@ -163,35 +197,30 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 	return alarms
 }
 
-func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.AlarmAction) {
-
-	// Check the interface to be used for raise or clear the alarm
-	rmr_or_http, _ := flags["if"].GetString()
-	if rmr_or_http == "rmr" {
-		alarmClient := NewAlarmClient("my-pod", "my-app")
-		if alarmClient == nil {
-			return
-		}
-
-		// Wait until RMR is up-and-running
-		for !alarmClient.alarmer.IsRMRReady() {
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		if action == alarm.AlarmActionRaise {
-			alarmClient.alarmer.Raise(a)
-		}
-
-		if action == alarm.AlarmActionClear {
-			alarmClient.alarmer.Clear(a)
-		}
+func postAlarmWithRmrIf(a alarm.Alarm, action alarm.AlarmAction, alarmClient *AlarmClient) {
+	if alarmClient == nil {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	if alarmClient == nil {
 		return
 	}
 
-	host, _ := flags["host"].GetString()
-	port, _ := flags["port"].GetString()
-	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
+	// Wait until RMR is up-and-running
+	for !alarmClient.alarmer.IsRMRReady() {
+		time.Sleep(100 * time.Millisecond)
+	}
 
+	if action == alarm.AlarmActionRaise {
+		alarmClient.alarmer.Raise(a)
+	}
+
+	if action == alarm.AlarmActionClear {
+		alarmClient.alarmer.Clear(a)
+	}
+	return
+}
+
+func postAlarmWithHttpIf(targetUrl string, a alarm.Alarm, action alarm.AlarmAction) {
 	m := alarm.AlarmMessage{Alarm: a, AlarmAction: action}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
@@ -203,6 +232,20 @@ func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.
 	if err != nil || resp == nil {
 		fmt.Println("Couldn't fetch active alarm list due to error: %v", err)
 		return
+	}
+}
+
+func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.AlarmAction, alarmClient *AlarmClient) {
+	// Check the interface to be used for raise or clear the alarm
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		postAlarmWithRmrIf(a, action, alarmClient)
+	} else {
+
+		host, _ := flags["host"].GetString()
+		port, _ := flags["port"].GetString()
+		targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
+		postAlarmWithHttpIf(targetUrl, a, action)
 	}
 }
 
@@ -312,4 +355,134 @@ func NewAlarmClient(moId, appId string) *AlarmClient {
 	}
 	fmt.Println("Failed to create alarmInstance", err)
 	return nil
+}
+
+// Conduct performance testing
+func conductperformancetest(flags map[string]commando.FlagValue) {
+	profile, _ := flags["prf"].GetInt()
+	if profile == 1 {
+		fmt.Println("starting peak performance test")
+		peakPerformanceTest(flags)
+	} else if profile == 2 {
+		fmt.Println("starting endurance test")
+		enduranceTest(flags)
+	} else {
+		fmt.Println("Unknown profile, received profile = %v", profile)
+	}
+}
+
+func peakPerformanceTest(flags map[string]commando.FlagValue) {
+	nalarms, _ := flags["nal"].GetInt()
+	var count int = 0
+	for aid, obj := range CLIPerfAlarmObjects {
+		count = count + 1
+		if count <= nalarms {
+			fmt.Println("peakPerformanceTest: invoking worker routine ", count, aid, *obj)
+			wg.Add(1)
+			go raiseClearAlarmOnce(obj, flags)
+		} else {
+			break
+		}
+	}
+	fmt.Println("peakPerformanceTest: Waiting for workers to finish")
+	wg.Wait()
+	fmt.Println("peakPerformanceTest: Wait completed")
+}
+
+func enduranceTest(flags map[string]commando.FlagValue) {
+	alarmspersec, _ := flags["aps"].GetInt()
+	var count int = 0
+	for aid, obj := range CLIPerfAlarmObjects {
+		count = count + 1
+		if count <= alarmspersec {
+			fmt.Println("enduranceTest: invoking worker routine ", count, aid, *obj)
+			wg.Add(1)
+			go raiseClearAlarmOverPeriod(obj, flags)
+		} else {
+			break
+		}
+	}
+	fmt.Println("enduranceTest: Waiting for workers to finish")
+	wg.Wait()
+	fmt.Println("enduranceTest: Wait completed")
+}
+
+func readPerfAlarmObjectFromJson() {
+	filename := os.Getenv("PERF_OBJ_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := RicPerfAlarmObjects{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmObject := range data.AlarmObjects {
+				ricAlarmObject := new(alarm.Alarm)
+				ricAlarmObject.ManagedObjectId = alarmObject.ManagedObjectId
+				ricAlarmObject.ApplicationId = alarmObject.ApplicationId
+				ricAlarmObject.SpecificProblem = alarmObject.SpecificProblem
+				ricAlarmObject.PerceivedSeverity = alarmObject.PerceivedSeverity
+				ricAlarmObject.AdditionalInfo = alarmObject.AdditionalInfo
+				ricAlarmObject.IdentifyingInfo = alarmObject.IdentifyingInfo
+				CLIPerfAlarmObjects[alarmObject.SpecificProblem] = ricAlarmObject
+			}
+		} else {
+			fmt.Println("readPerfAlarmObjectFromJson: json.Unmarshal failed with error ", err)
+		}
+	} else {
+		fmt.Println("readPerfAlarmObjectFromJson: ioutil.ReadFile failed with error ", err)
+	}
+}
+
+func wakeUpAfterTime(timeinseconds int, chn chan string, action string) {
+	time.Sleep(time.Second * time.Duration(timeinseconds))
+	chn <- action
+}
+
+func raiseClearAlarmOnce(alarmobject *alarm.Alarm, flags map[string]commando.FlagValue) {
+	var alarmClient *AlarmClient = nil
+	defer wg.Done()
+	chn := make(chan string, 1)
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+	go wakeUpAfterTime(PeakTestDuration, chn, Clear)
+	select {
+	case res := <-chn:
+		if res == Clear {
+			postAlarm(flags, *alarmobject, alarm.AlarmActionClear, alarmClient)
+			go wakeUpAfterTime(PeakTestDuration, chn, End)
+		} else if res == End {
+			return
+		}
+	}
+}
+
+func raiseClearAlarmOverPeriod(alarmobject *alarm.Alarm, flags map[string]commando.FlagValue) {
+	var alarmClient *AlarmClient = nil
+	defer wg.Done()
+	timeinminutes, _ := flags["tim"].GetInt()
+	timeinseconds := timeinminutes * 60
+	chn := make(chan string, 1)
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+	go wakeUpAfterTime(OneSecondDuration, chn, Clear)
+	go wakeUpAfterTime(timeinseconds, chn, End)
+	for {
+		select {
+		case res := <-chn:
+			if res == Raise {
+				postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+				go wakeUpAfterTime(OneSecondDuration, chn, Clear)
+			} else if res == Clear {
+				postAlarm(flags, *alarmobject, alarm.AlarmActionClear, alarmClient)
+				go wakeUpAfterTime(OneSecondDuration, chn, Raise)
+			} else if res == End {
+				return
+			}
+		}
+	}
 }
