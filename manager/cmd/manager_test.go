@@ -48,6 +48,7 @@ var eventChan chan string
 // Test cases
 func TestMain(M *testing.M) {
 	alarmManager = NewAlarmManager("localhost:9093", 500)
+	alarmManager.alertInterval = 20000
 	go alarmManager.Run(false)
 	time.Sleep(time.Duration(10) * time.Second)
 
@@ -238,6 +239,7 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 
+	time.Sleep(time.Duration(2) * time.Second)
 	VerifyAlarm(t, a, 2)
 	VerifyAlarm(t, b, 2)
 }
@@ -332,7 +334,7 @@ func TestActiveAlarmMaxThresholds(t *testing.T) {
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
-	assert.Equal(t, len(alarmManager.activeAlarms), expectedCount)
+	assert.Equal(t, expectedCount, len(alarmManager.activeAlarms))
 	_, ok := alarmManager.IsMatchFound(a)
 	assert.True(t, ok)
 

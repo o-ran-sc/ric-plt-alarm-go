@@ -39,6 +39,8 @@ type AlarmManager struct {
 	maxActiveAlarms int
 	maxAlarmHistory int
 	alarmClient     *alarm.RICAlarm
+	exceededActiveAlarmOn bool
+	exceededAlarmHistoryOn bool
 }
 
 type AlertStatus string
@@ -53,4 +55,8 @@ var Hash string
 
 type RicAlarmDefinitions struct {
 	AlarmDefinitions []*alarm.AlarmDefinition `json:"alarmdefinitions"`
+}
+
+type RicPerfAlarmObjects struct {
+	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
 }
