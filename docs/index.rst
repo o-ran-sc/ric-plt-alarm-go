@@ -23,6 +23,7 @@ Alarm Go Library
    :maxdepth: 2
    :caption: Contents:
 
+   user-guide.rst
    release-notes.rst
 
 * :ref:`genindex`
