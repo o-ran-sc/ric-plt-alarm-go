@@ -32,6 +32,8 @@ var CLIPerfAlarmObjects map[int]*alarm.Alarm
 
 var wg sync.WaitGroup
 
+var CliPerfAlarmDefinitions CliAlarmDefinitions
+
 const (
 	Raise             string = "RAISE"
 	Clear             string = "CLEAR"
@@ -41,9 +43,6 @@ const (
 )
 
 func main() {
-
-	CLIPerfAlarmObjects = make(map[int]*alarm.Alarm)
-	readPerfAlarmObjectFromJson()
 
 	// configure commando
 	commando.
@@ -181,7 +180,7 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/%s", host, port, action)
 	resp, err := http.Get(targetUrl)
 	if err != nil || resp == nil || resp.Body == nil {
-		fmt.Println("Couldn't fetch active alarm list due to error: %v", err)
+		fmt.Println("Couldn't fetch active alarm list due to error: ", err)
 		return alarms
 	}
 
@@ -189,7 +188,7 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ioutil.ReadAll failed: %v", err)
+		fmt.Println("ioutil.ReadAll failed: ", err)
 		return alarms
 	}
 
@@ -224,13 +223,13 @@ func postAlarmWithHttpIf(targetUrl string, a alarm.Alarm, action alarm.AlarmActi
 	m := alarm.AlarmMessage{Alarm: a, AlarmAction: action}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't fetch active alarm list due to error: %v", err)
+		fmt.Println("Couldn't fetch active alarm list due to error: ", err)
 		return
 	}
 }
@@ -285,13 +284,13 @@ func postAlarmConfig(flags map[string]commando.FlagValue) {
 	m := alarm.AlarmConfigParams{MaxActiveAlarms: maxactivealarms, MaxAlarmHistory: maxalarmhistory}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't fetch post alarm configuration due to error: %v", err)
+		fmt.Println("Couldn't fetch post alarm configuration due to error: ", err)
 		return
 	}
 }
@@ -314,13 +313,13 @@ func postAlarmDefinition(flags map[string]commando.FlagValue) {
 	m := CliAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarmdefinition}}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't post alarm definition due to error: %v", err)
+		fmt.Println("Couldn't post alarm definition due to error: ", err)
 		return
 	}
 }
@@ -335,12 +334,12 @@ func deleteAlarmDefinition(flags map[string]commando.FlagValue) {
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", targetUrl, nil)
 	if err != nil || req == nil {
-		fmt.Println("Couldn't make delete request due to error: %v", err)
+		fmt.Println("Couldn't make delete request due to error: ", err)
 		return
 	}
 	resp, errr := client.Do(req)
 	if errr != nil || resp == nil {
-		fmt.Println("Couldn't send delete request due to error: %v", err)
+		fmt.Println("Couldn't send delete request due to error: ", err)
 		return
 	}
 }
@@ -359,16 +358,41 @@ func NewAlarmClient(moId, appId string) *AlarmClient {
 
 // Conduct performance testing
 func conductperformancetest(flags map[string]commando.FlagValue) {
-	profile, _ := flags["prf"].GetInt()
-	if profile == 1 {
-		fmt.Println("starting peak performance test")
-		peakPerformanceTest(flags)
-	} else if profile == 2 {
-		fmt.Println("starting endurance test")
-		enduranceTest(flags)
+	var readerror error
+	var senderror error
+	var readobjerror error
+	host, _ := flags["host"].GetString()
+	port, _ := flags["port"].GetString()
+	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/define", host, port)
+	readerror = readPerfAlarmDefinitionFromJson()
+	if readerror == nil {
+		senderror = sendPerfAlarmDefinitionToAlarmManager(targetUrl)
+		if senderror == nil {
+			fmt.Println("sent performance alarm definitions to alarm manager")
+			CLIPerfAlarmObjects = make(map[int]*alarm.Alarm)
+			readobjerror = readPerfAlarmObjectFromJson()
+			if readobjerror == nil {
+				profile, _ := flags["prf"].GetInt()
+				if profile == 1 {
+					fmt.Println("starting peak performance test")
+					peakPerformanceTest(flags)
+				} else if profile == 2 {
+					fmt.Println("starting endurance test")
+					enduranceTest(flags)
+				} else {
+					fmt.Println("Unknown profile, received profile = ", profile)
+				}
+			} else {
+				fmt.Println("reading performance alarm objects from json file failed ")
+			}
+		} else {
+			fmt.Println("sending performance alarm definitions to alarm manager failed ")
+		}
+
 	} else {
-		fmt.Println("Unknown profile, received profile = %v", profile)
+		fmt.Println("reading performance alarm definitions from json file failed ")
 	}
+
 }
 
 func peakPerformanceTest(flags map[string]commando.FlagValue) {
@@ -407,7 +431,7 @@ func enduranceTest(flags map[string]commando.FlagValue) {
 	fmt.Println("enduranceTest: Wait completed")
 }
 
-func readPerfAlarmObjectFromJson() {
+func readPerfAlarmObjectFromJson() error {
 	filename := os.Getenv("PERF_OBJ_FILE")
 	file, err := ioutil.ReadFile(filename)
 	if err == nil {
@@ -426,10 +450,61 @@ func readPerfAlarmObjectFromJson() {
 			}
 		} else {
 			fmt.Println("readPerfAlarmObjectFromJson: json.Unmarshal failed with error ", err)
+			return err
 		}
 	} else {
 		fmt.Println("readPerfAlarmObjectFromJson: ioutil.ReadFile failed with error ", err)
+		return err
 	}
+	return nil
+}
+
+func readPerfAlarmDefinitionFromJson() error {
+	filename := os.Getenv("PERF_DEF_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := CliAlarmDefinitions{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmDefinition := range data.AlarmDefinitions {
+				_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
+				if exists {
+					fmt.Println("ReadPerfAlarmDefinitionFromJson: alarm definition already exists for ", alarmDefinition.AlarmId)
+				} else {
+					fmt.Println("ReadPerfAlarmDefinitionFromJson: alarm ", alarmDefinition.AlarmId)
+					ricAlarmDefintion := new(alarm.AlarmDefinition)
+					ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
+					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
+					ricAlarmDefintion.EventType = alarmDefinition.EventType
+					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					CliPerfAlarmDefinitions.AlarmDefinitions = append(CliPerfAlarmDefinitions.AlarmDefinitions, ricAlarmDefintion)
+				}
+			}
+		} else {
+			fmt.Println("ReadPerfAlarmDefinitionFromJson: json.Unmarshal failed with error: ", err)
+			return err
+		}
+	} else {
+		fmt.Println("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error: ", err)
+		return err
+	}
+	return nil
+}
+
+func sendPerfAlarmDefinitionToAlarmManager(targetUrl string) error {
+
+	jsonData, err := json.Marshal(CliPerfAlarmDefinitions)
+	if err != nil {
+		fmt.Println("sendPerfAlarmDefinitionToAlarmManager: json.Marshal failed: ", err)
+		return err
+	}
+
+	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil || resp == nil {
+		fmt.Println("sendPerfAlarmDefinitionToAlarmManager: Couldn't post alarm definition to targeturl due to error: ", targetUrl, err)
+		return err
+	}
+	return nil
 }
 
 func wakeUpAfterTime(timeinseconds int, chn chan string, action string) {

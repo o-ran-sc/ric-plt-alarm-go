@@ -39,6 +39,8 @@ type AlarmManager struct {
 	maxActiveAlarms int
 	maxAlarmHistory int
 	alarmClient     *alarm.RICAlarm
+	exceededActiveAlarmOn bool
+	exceededAlarmHistoryOn bool
 }
 
 type AlertStatus string

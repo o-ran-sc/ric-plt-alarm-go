@@ -35,11 +35,16 @@ FROM ubuntu:18.04
 
 COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
+COPY --from=ubuntu-alarm-manager /go/src/am/cli/alarm-cli /
+COPY --from=ubuntu-alarm-manager /go/src/am/cli/perf-alarm-object.json /
+COPY --from=ubuntu-alarm-manager /go/src/am/cli/perf-alarm-definition.json /
 COPY --from=ubuntu-alarm-manager /go/src/am/config/* /
 COPY --from=ubuntu-alarm-manager /usr/local/lib /usr/local/lib
 COPY --from=ubuntu-alarm-manager /go/src/am/definitions/* / 
 
 RUN ldconfig
+ENV PERF_DEF_FILE="./perf-alarm-definition.json"
+ENV PERF_OBJ_FILE="./perf-alarm-object.json"
 
 RUN chmod 755 /run.sh
 CMD /run.sh

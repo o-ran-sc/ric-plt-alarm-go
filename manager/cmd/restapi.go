@@ -96,6 +96,7 @@ func (a *AlarmManager) SetAlarmDefinition(w http.ResponseWriter, r *http.Request
 			ricAlarmDefintion.EventType = alarmDefinition.EventType
 			ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
 			alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
+			app.Logger.Debug("POST - alarm definition added for alarm id %v", alarmDefinition.AlarmId)
 		}
 	}
 

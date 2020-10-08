@@ -101,12 +101,18 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 		if found {
 			a.alarmHistory = append(a.alarmHistory, *m)
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
-			if len(a.alarmHistory) >= a.maxAlarmHistory {
+			if ((len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false)){
 				app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
 				histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
 				histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
 				a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
 				a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
+			}
+			if ((a.exceededActiveAlarmOn == true) && (m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD)) {
+				a.exceededActiveAlarmOn = false
+			}
+			if ((a.exceededAlarmHistoryOn == true) && (m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD)) {
+				a.exceededAlarmHistoryOn = false
 			}
 			if a.postClear {
 				a.mutex.Unlock()
@@ -148,20 +154,22 @@ func (a *AlarmManager) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName 
 func (a *AlarmManager) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
 	/* If maximum number of active alarms is reached, an error log writing is made, and new alarm indicating the problem is raised.
 	   The attempt to raise the alarm next time will be supressed when found as duplicate. */
-	if len(a.activeAlarms) >= a.maxActiveAlarms {
+	if ((len(a.activeAlarms) >= a.maxActiveAlarms) && (a.exceededActiveAlarmOn == false)) {
 		app.Logger.Error("active alarm count exceeded maxActiveAlarms threshold")
 		actAlarm := a.alarmClient.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "active")
 		actAlarmMessage := alarm.AlarmMessage{Alarm: actAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
 		a.activeAlarms = append(a.activeAlarms, actAlarmMessage)
 		a.alarmHistory = append(a.alarmHistory, actAlarmMessage)
+		a.exceededActiveAlarmOn = true
 	}
 
-	if len(a.alarmHistory) >= a.maxAlarmHistory {
+	if ((len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false)) {
 		app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
 		histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
 		histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
 		a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
 		a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
+		a.exceededAlarmHistoryOn = true
 	}
 
 	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
@@ -266,36 +274,6 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 	}
 }
 
-func (a *AlarmManager) ReadPerfAlarmDefinitionFromJson() {
-
-	filename := os.Getenv("PERF_DEF_FILE")
-	file, err := ioutil.ReadFile(filename)
-	if err == nil {
-		data := RicAlarmDefinitions{}
-		err = json.Unmarshal([]byte(file), &data)
-		if err == nil {
-			for _, alarmDefinition := range data.AlarmDefinitions {
-				_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
-				if exists {
-					app.Logger.Error("ReadPerfAlarmDefinitionFromJson: alarm definition already exists for %v", alarmDefinition.AlarmId)
-				} else {
-					app.Logger.Debug("ReadPerfAlarmDefinitionFromJson: alarm  %v", alarmDefinition.AlarmId)
-					ricAlarmDefintion := new(alarm.AlarmDefinition)
-					ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
-					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
-					ricAlarmDefintion.EventType = alarmDefinition.EventType
-					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
-					alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
-				}
-			}
-		} else {
-			app.Logger.Error("ReadPerfAlarmDefinitionFromJson: json.Unmarshal failed with error %v", err)
-		}
-	} else {
-		app.Logger.Error("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error %v", err)
-	}
-}
-
 func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
@@ -304,7 +282,6 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 
 	alarm.RICAlarmDefinitions = make(map[int]*alarm.AlarmDefinition)
 	a.ReadAlarmDefinitionFromJson()
-	a.ReadPerfAlarmDefinitionFromJson()
 
 	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
 	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
@@ -344,6 +321,8 @@ func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 		alarmHistory:    make([]alarm.AlarmMessage, 0),
 		maxActiveAlarms: app.Config.GetInt("controls.maxActiveAlarms"),
 		maxAlarmHistory: app.Config.GetInt("controls.maxAlarmHistory"),
+		exceededActiveAlarmOn:  false,
+		exceededAlarmHistoryOn: false,
 	}
 }
 

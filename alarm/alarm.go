@@ -56,8 +56,11 @@ func InitAlarm(mo, id string) (*RICAlarm, error) {
 	}
 
 	if os.Getenv("ALARM_IF_RMR") == "" {
-		go InitRMR(r)
-	}
+                go InitRMR(r, "")
+        } else {
+                go InitRMR(r, ALARM_MANAGER_RMR_URL)
+        }
+
 	return r, nil
 }
 
@@ -177,14 +180,16 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 	return errors.New("rmrRcv failed!")
 }
 
-func InitRMR(r *RICAlarm) error {
+func InitRMR(r *RICAlarm,  endpoint string) error {
 	// Setup static RT for alarm system
-	endpoint := ALARM_MANAGER_RMR_URL
-	if r.moId == "my-pod" {
-		endpoint = "127.0.0.1:4560"
-	} else if r.moId == "my-pod-lib" {
-		endpoint = "127.0.0.1:4588"
-	}
+	//endpoint := ALARM_MANAGER_RMR_URL
+	if endpoint == "" {
+		if r.moId == "my-pod" {
+                        endpoint = "127.0.0.1:4560"
+                } else if r.moId == "my-pod-lib" {
+                        endpoint = "127.0.0.1:4588"
+                }
+        }
 
 	alarmRT := fmt.Sprintf("newrt|start\nrte|13111|%s\nnewrt|end\n", endpoint)
 	alarmRTFile := "/tmp/alarm.rt"
