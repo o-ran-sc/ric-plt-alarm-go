@@ -13,6 +13,7 @@ import (
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/thatisuday/commando"
+	"sync"
 )
 
 type CliAlarmDefinitions struct {
@@ -22,6 +23,24 @@ type CliAlarmDefinitions struct {
 type AlarmClient struct {
 	alarmer *alarm.RICAlarm
 }
+
+type RicPerfAlarmObjects struct {
+	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
+}
+
+var CLIPerfAlarmObjects map[int]*alarm.Alarm
+
+var wg sync.WaitGroup
+
+var CliPerfAlarmDefinitions CliAlarmDefinitions
+
+const (
+	Raise             string = "RAISE"
+	Clear             string = "CLEAR"
+	End               string = "END"
+	PeakTestDuration  int    = 60
+	OneSecondDuration int    = 1
+)
 
 func main() {
 
@@ -67,7 +86,7 @@ func main() {
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise)
+			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise, nil)
 		})
 
 	// Clear an alarm
@@ -82,7 +101,7 @@ func main() {
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
-			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear)
+			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear, nil)
 		})
 
 	// Configure an alarm manager
@@ -119,6 +138,20 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			deleteAlarmDefinition(flags)
 		})
+		// Conduct performance test for alarm-go
+	commando.
+		Register("perf").
+		SetShortDescription("Conduct performance test with given parameters").
+		AddFlag("prf", "performance profile id", commando.Int, nil).
+		AddFlag("nal", "number of alarms", commando.Int, nil).
+		AddFlag("aps", "alarms per sec", commando.Int, nil).
+		AddFlag("tim", "total time of test", commando.Int, nil).
+		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("port", "Alarm manager host address", commando.String, "8080").
+		AddFlag("if", "http or rmr used as interface", commando.String, "http").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			conductperformancetest(flags)
+		})
 
 	// parse command-line arguments
 	commando.Parse(nil)
@@ -147,7 +180,7 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/%s", host, port, action)
 	resp, err := http.Get(targetUrl)
 	if err != nil || resp == nil || resp.Body == nil {
-		fmt.Println("Couldn't fetch active alarm list due to error: %v", err)
+		fmt.Println("Couldn't fetch active alarm list due to error: ", err)
 		return alarms
 	}
 
@@ -155,7 +188,7 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ioutil.ReadAll failed: %v", err)
+		fmt.Println("ioutil.ReadAll failed: ", err)
 		return alarms
 	}
 
@@ -163,46 +196,55 @@ func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (a
 	return alarms
 }
 
-func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.AlarmAction) {
-
-	// Check the interface to be used for raise or clear the alarm
-	rmr_or_http, _ := flags["if"].GetString()
-	if rmr_or_http == "rmr" {
-		alarmClient := NewAlarmClient("my-pod", "my-app")
-		if alarmClient == nil {
-			return
-		}
-
-		// Wait until RMR is up-and-running
-		for !alarmClient.alarmer.IsRMRReady() {
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		if action == alarm.AlarmActionRaise {
-			alarmClient.alarmer.Raise(a)
-		}
-
-		if action == alarm.AlarmActionClear {
-			alarmClient.alarmer.Clear(a)
-		}
+func postAlarmWithRmrIf(a alarm.Alarm, action alarm.AlarmAction, alarmClient *AlarmClient) {
+	if alarmClient == nil {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	if alarmClient == nil {
 		return
 	}
 
-	host, _ := flags["host"].GetString()
-	port, _ := flags["port"].GetString()
-	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
+	// Wait until RMR is up-and-running
+	for !alarmClient.alarmer.IsRMRReady() {
+		time.Sleep(100 * time.Millisecond)
+	}
 
+	if action == alarm.AlarmActionRaise {
+		alarmClient.alarmer.Raise(a)
+	}
+
+	if action == alarm.AlarmActionClear {
+		alarmClient.alarmer.Clear(a)
+	}
+	return
+}
+
+func postAlarmWithHttpIf(targetUrl string, a alarm.Alarm, action alarm.AlarmAction) {
 	m := alarm.AlarmMessage{Alarm: a, AlarmAction: action}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't fetch active alarm list due to error: %v", err)
+		fmt.Println("Couldn't fetch active alarm list due to error: ", err)
 		return
+	}
+}
+
+func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.AlarmAction, alarmClient *AlarmClient) {
+	// Check the interface to be used for raise or clear the alarm
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		postAlarmWithRmrIf(a, action, alarmClient)
+	} else {
+
+		host, _ := flags["host"].GetString()
+		port, _ := flags["port"].GetString()
+		targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
+		postAlarmWithHttpIf(targetUrl, a, action)
 	}
 }
 
@@ -242,13 +284,13 @@ func postAlarmConfig(flags map[string]commando.FlagValue) {
 	m := alarm.AlarmConfigParams{MaxActiveAlarms: maxactivealarms, MaxAlarmHistory: maxalarmhistory}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't fetch post alarm configuration due to error: %v", err)
+		fmt.Println("Couldn't fetch post alarm configuration due to error: ", err)
 		return
 	}
 }
@@ -271,13 +313,13 @@ func postAlarmDefinition(flags map[string]commando.FlagValue) {
 	m := CliAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarmdefinition}}
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println("json.Marshal failed: %v", err)
+		fmt.Println("json.Marshal failed: ", err)
 		return
 	}
 
 	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil || resp == nil {
-		fmt.Println("Couldn't post alarm definition due to error: %v", err)
+		fmt.Println("Couldn't post alarm definition due to error: ", err)
 		return
 	}
 }
@@ -292,12 +334,12 @@ func deleteAlarmDefinition(flags map[string]commando.FlagValue) {
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", targetUrl, nil)
 	if err != nil || req == nil {
-		fmt.Println("Couldn't make delete request due to error: %v", err)
+		fmt.Println("Couldn't make delete request due to error: ", err)
 		return
 	}
 	resp, errr := client.Do(req)
 	if errr != nil || resp == nil {
-		fmt.Println("Couldn't send delete request due to error: %v", err)
+		fmt.Println("Couldn't send delete request due to error: ", err)
 		return
 	}
 }
@@ -312,4 +354,210 @@ func NewAlarmClient(moId, appId string) *AlarmClient {
 	}
 	fmt.Println("Failed to create alarmInstance", err)
 	return nil
+}
+
+// Conduct performance testing
+func conductperformancetest(flags map[string]commando.FlagValue) {
+	var readerror error
+	var senderror error
+	var readobjerror error
+	host, _ := flags["host"].GetString()
+	port, _ := flags["port"].GetString()
+	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/define", host, port)
+	readerror = readPerfAlarmDefinitionFromJson()
+	if readerror == nil {
+		senderror = sendPerfAlarmDefinitionToAlarmManager(targetUrl)
+		if senderror == nil {
+			fmt.Println("sent performance alarm definitions to alarm manager")
+			CLIPerfAlarmObjects = make(map[int]*alarm.Alarm)
+			readobjerror = readPerfAlarmObjectFromJson()
+			if readobjerror == nil {
+				profile, _ := flags["prf"].GetInt()
+				if profile == 1 {
+					fmt.Println("starting peak performance test")
+					peakPerformanceTest(flags)
+				} else if profile == 2 {
+					fmt.Println("starting endurance test")
+					enduranceTest(flags)
+				} else {
+					fmt.Println("Unknown profile, received profile = ", profile)
+				}
+			} else {
+				fmt.Println("reading performance alarm objects from json file failed ")
+			}
+		} else {
+			fmt.Println("sending performance alarm definitions to alarm manager failed ")
+		}
+
+	} else {
+		fmt.Println("reading performance alarm definitions from json file failed ")
+	}
+
+}
+
+func peakPerformanceTest(flags map[string]commando.FlagValue) {
+	nalarms, _ := flags["nal"].GetInt()
+	var count int = 0
+	for aid, obj := range CLIPerfAlarmObjects {
+		count = count + 1
+		if count <= nalarms {
+			fmt.Println("peakPerformanceTest: invoking worker routine ", count, aid, *obj)
+			wg.Add(1)
+			go raiseClearAlarmOnce(obj, flags)
+		} else {
+			break
+		}
+	}
+	fmt.Println("peakPerformanceTest: Waiting for workers to finish")
+	wg.Wait()
+	fmt.Println("peakPerformanceTest: Wait completed")
+}
+
+func enduranceTest(flags map[string]commando.FlagValue) {
+	alarmspersec, _ := flags["aps"].GetInt()
+	var count int = 0
+	for aid, obj := range CLIPerfAlarmObjects {
+		count = count + 1
+		if count <= alarmspersec {
+			fmt.Println("enduranceTest: invoking worker routine ", count, aid, *obj)
+			wg.Add(1)
+			go raiseClearAlarmOverPeriod(obj, flags)
+		} else {
+			break
+		}
+	}
+	fmt.Println("enduranceTest: Waiting for workers to finish")
+	wg.Wait()
+	fmt.Println("enduranceTest: Wait completed")
+}
+
+func readPerfAlarmObjectFromJson() error {
+	filename := os.Getenv("PERF_OBJ_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := RicPerfAlarmObjects{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmObject := range data.AlarmObjects {
+				ricAlarmObject := new(alarm.Alarm)
+				ricAlarmObject.ManagedObjectId = alarmObject.ManagedObjectId
+				ricAlarmObject.ApplicationId = alarmObject.ApplicationId
+				ricAlarmObject.SpecificProblem = alarmObject.SpecificProblem
+				ricAlarmObject.PerceivedSeverity = alarmObject.PerceivedSeverity
+				ricAlarmObject.AdditionalInfo = alarmObject.AdditionalInfo
+				ricAlarmObject.IdentifyingInfo = alarmObject.IdentifyingInfo
+				CLIPerfAlarmObjects[alarmObject.SpecificProblem] = ricAlarmObject
+			}
+		} else {
+			fmt.Println("readPerfAlarmObjectFromJson: json.Unmarshal failed with error ", err)
+			return err
+		}
+	} else {
+		fmt.Println("readPerfAlarmObjectFromJson: ioutil.ReadFile failed with error ", err)
+		return err
+	}
+	return nil
+}
+
+func readPerfAlarmDefinitionFromJson() error {
+	filename := os.Getenv("PERF_DEF_FILE")
+	file, err := ioutil.ReadFile(filename)
+	if err == nil {
+		data := CliAlarmDefinitions{}
+		err = json.Unmarshal([]byte(file), &data)
+		if err == nil {
+			for _, alarmDefinition := range data.AlarmDefinitions {
+				_, exists := alarm.RICAlarmDefinitions[alarmDefinition.AlarmId]
+				if exists {
+					fmt.Println("ReadPerfAlarmDefinitionFromJson: alarm definition already exists for ", alarmDefinition.AlarmId)
+				} else {
+					fmt.Println("ReadPerfAlarmDefinitionFromJson: alarm ", alarmDefinition.AlarmId)
+					ricAlarmDefintion := new(alarm.AlarmDefinition)
+					ricAlarmDefintion.AlarmId = alarmDefinition.AlarmId
+					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
+					ricAlarmDefintion.EventType = alarmDefinition.EventType
+					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					CliPerfAlarmDefinitions.AlarmDefinitions = append(CliPerfAlarmDefinitions.AlarmDefinitions, ricAlarmDefintion)
+				}
+			}
+		} else {
+			fmt.Println("ReadPerfAlarmDefinitionFromJson: json.Unmarshal failed with error: ", err)
+			return err
+		}
+	} else {
+		fmt.Println("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error: ", err)
+		return err
+	}
+	return nil
+}
+
+func sendPerfAlarmDefinitionToAlarmManager(targetUrl string) error {
+
+	jsonData, err := json.Marshal(CliPerfAlarmDefinitions)
+	if err != nil {
+		fmt.Println("sendPerfAlarmDefinitionToAlarmManager: json.Marshal failed: ", err)
+		return err
+	}
+
+	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil || resp == nil {
+		fmt.Println("sendPerfAlarmDefinitionToAlarmManager: Couldn't post alarm definition to targeturl due to error: ", targetUrl, err)
+		return err
+	}
+	return nil
+}
+
+func wakeUpAfterTime(timeinseconds int, chn chan string, action string) {
+	time.Sleep(time.Second * time.Duration(timeinseconds))
+	chn <- action
+}
+
+func raiseClearAlarmOnce(alarmobject *alarm.Alarm, flags map[string]commando.FlagValue) {
+	var alarmClient *AlarmClient = nil
+	defer wg.Done()
+	chn := make(chan string, 1)
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+	go wakeUpAfterTime(PeakTestDuration, chn, Clear)
+	select {
+	case res := <-chn:
+		if res == Clear {
+			postAlarm(flags, *alarmobject, alarm.AlarmActionClear, alarmClient)
+			go wakeUpAfterTime(PeakTestDuration, chn, End)
+		} else if res == End {
+			return
+		}
+	}
+}
+
+func raiseClearAlarmOverPeriod(alarmobject *alarm.Alarm, flags map[string]commando.FlagValue) {
+	var alarmClient *AlarmClient = nil
+	defer wg.Done()
+	timeinminutes, _ := flags["tim"].GetInt()
+	timeinseconds := timeinminutes * 60
+	chn := make(chan string, 1)
+	rmr_or_http, _ := flags["if"].GetString()
+	if rmr_or_http == "rmr" {
+		alarmClient = NewAlarmClient("my-pod", "my-app")
+	}
+	postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+	go wakeUpAfterTime(OneSecondDuration, chn, Clear)
+	go wakeUpAfterTime(timeinseconds, chn, End)
+	for {
+		select {
+		case res := <-chn:
+			if res == Raise {
+				postAlarm(flags, *alarmobject, alarm.AlarmActionRaise, alarmClient)
+				go wakeUpAfterTime(OneSecondDuration, chn, Clear)
+			} else if res == Clear {
+				postAlarm(flags, *alarmobject, alarm.AlarmActionClear, alarmClient)
+				go wakeUpAfterTime(OneSecondDuration, chn, Raise)
+			} else if res == End {
+				return
+			}
+		}
+	}
 }
