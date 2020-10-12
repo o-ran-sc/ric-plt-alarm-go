@@ -67,17 +67,17 @@ given as parameters for Alarm Context/Object
 
 The Alarm object contains following parameters:
 
-    \* SpecificProblem: problem that is the cause of the alarm
+    SpecificProblem: problem that is the cause of the alarm \(*
 
     PerceivedSeverity: The severity of the alarm, see below for possible values
 
-    \* ManagedObjectId: The name of the managed object that is the cause of the fault
+    ManagedObjectId: The name of the managed object that is the cause of the fault \(*
 
-    \* ApplicationId: The name of the process raised the alarm
+    ApplicationId: The name of the process raised the alarm \(*
 
     AdditionalInfo: Additional information given by the application
 
-    \* IdentifyingInfo: Identifying additional information, which is part of alarm identity
+    IdentifyingInfo: Identifying additional information, which is part of alarm identity \(*
 
 Items marked with \*, i.e., ManagedObjectId (mo), SpecificProblem (sp), ApplicationId (ap) and IdentifyingInfo (IdentifyingInfo) make
 up the identity of the alarm. All parameters must be according to the alarm definition, i.e. all mandatory parameters should be present,
@@ -116,41 +116,49 @@ Through CLI operator can do the following operations:
 
 CLI commands need to be given inside Alarm Manger pod. To get there first print name of the Alarm Manger pod.
 
+.. code-block:: none
+
  kubectl get pods -A | grep alarmmanager
 
 Output should be look someting like this: 
+
+.. code-block:: none
 
  ricplt  deployment-ricplt-alarmmanager-6cc8764749-gnwjh 1/1 running 0  15d
 
 Then give this command to enter inside the pod. Replace the pod name with the actual name from the printout.
 
+.. code-block:: none
+
  kubectl exec -it deployment-ricplt-alarmmanager-6cc8764749-gnwjh bash
 
 CLI commands can have some of the following parameters
 
- - \--moid        ManagedObjectId, example string: RIC 
- - \--apid        ApplicationId string, example string: UEEC  
- - \--sp          SpecificProblem, example value: 8007
- - \--severity    Severity of the alarm, possible values: UNSPECIFIED, CRITICAL, MAJOR, MINOR, WARNING, CLEARED or DEFAULT
- - \--iinfo       Identifying info, a user specified string, example string: INFO-1
- - \--mal         Maximum number of active alarms, example value 1000
- - \--mah         Maximum number of alarms in alarm history, example value: 2000
- - \--aid         Alarm id, example value: 8007
- - \--atx         Alarm text string, example string: E2 CONNECTIVITY LOST TO E-NODEB
- - \--ety         Event type string, example string: Communication error
- - \--oin         Operation instructions string, example string: Not defined
- - \--prf         Performance profile id, possible values: 1 = peak performance test or 2 = endurance test
- - \--nal         Number of alarms, example value: 50
- - \--aps         Alarms per second, example value: 1
- - \--tim         Total time of test in minutes, example value: 1 
- - \--host        Alarm Manager REST address: default value = localhost
- - \--port        Alarm Manager REST port: default value = 8080
- - \--if          Used Alarm Manager command interface, http or rmr: default value = http
+.. code-block:: none
+
+ --moid        ManagedObjectId, example string: RIC 
+ --apid        ApplicationId string, example string: UEEC  
+ --sp          SpecificProblem, example value: 8007
+ --severity    Severity of the alarm, possible values: UNSPECIFIED, CRITICAL, MAJOR, MINOR, WARNING, CLEARED or DEFAULT
+ --iinfo       Identifying info, a user specified string, example string: INFO-1
+ --mal         Maximum number of active alarms, example value 1000
+ --mah         Maximum number of alarms in alarm history, example value: 2000
+ --aid         Alarm id, example value: 8007
+ --atx         Alarm text string, example string: E2 CONNECTIVITY LOST TO E-NODEB
+ --ety         Event type string, example string: Communication error
+ --oin         Operation instructions string, example string: Not defined
+ --prf         Performance profile id, possible values: 1 = peak performance test or 2 = endurance test
+ --nal         Number of alarms, example value: 50
+ --aps         Alarms per second, example value: 1
+ --tim         Total time of test in minutes, example value: 1 
+ --host        Alarm Manager REST address: default value = localhost
+ --port        Alarm Manager REST port: default value = 8080
+ --if          Used Alarm Manager command interface, http or rmr: default value = http
 
 
- ``Note that there are two minus signs before parameter name!``
+``Note that there are two minus signs before parameter name!``
  
- If parameter contains any white spaces then it must be enclosed in quotation marks like: "INFO 1"
+If parameter contains any white spaces then it must be enclosed in quotation marks like: "INFO 1"
 
 CLI command examples:
 
