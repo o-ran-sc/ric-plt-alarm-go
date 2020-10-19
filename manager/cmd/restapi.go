@@ -180,7 +180,7 @@ func (a *AlarmManager) doAction(w http.ResponseWriter, r *http.Request, isRaiseA
 		m.AlarmTime = time.Now().UnixNano()
 	}
 
-	_, err := a.ProcessAlarm(&m)
+	_, err := a.ProcessAlarm(&AlarmInformation{m, alarm.AlarmDefinition{}})
 	return err
 }
 

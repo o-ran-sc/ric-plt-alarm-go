@@ -31,8 +31,9 @@ type AlarmManager struct {
 	amBaseUrl       string
 	amSchemes       []string
 	alertInterval   int
-	activeAlarms    []alarm.AlarmMessage
-	alarmHistory    []alarm.AlarmMessage
+	activeAlarms    []AlarmInformation
+	alarmHistory    []AlarmInformation
+	uniqueAlarmId   int
 	mutex           sync.Mutex
 	rmrReady        bool
 	postClear       bool
@@ -41,6 +42,11 @@ type AlarmManager struct {
 	alarmClient     *alarm.RICAlarm
 	exceededActiveAlarmOn bool
 	exceededAlarmHistoryOn bool
+}
+
+type AlarmInformation struct {
+	alarm.AlarmMessage
+	alarm.AlarmDefinition
 }
 
 type AlertStatus string

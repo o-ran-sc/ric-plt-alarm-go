@@ -148,9 +148,9 @@ const (
 )
 
 type AlarmDefinition struct {
-	AlarmId               int    `json:"alarmid"`
-	AlarmText             string `json:"alarmtext"`
-	EventType             string `json:"eventtype"`
+	AlarmId               int    `json:"alarmId"`
+	AlarmText             string `json:"alarmText"`
+	EventType             string `json:"eventType"`
 	OperationInstructions string `json:"operationinstructions"`
 }
 
