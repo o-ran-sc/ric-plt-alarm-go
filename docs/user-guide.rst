@@ -151,9 +151,15 @@ CLI commands can have some of the following parameters
  --nal         Number of alarms, example value: 50
  --aps         Alarms per second, example value: 1
  --tim         Total time of test in minutes, example value: 1 
- --host        Alarm Manager REST address: default value = localhost
- --port        Alarm Manager REST port: default value = 8080
+ --host        Alarm Manager host address. Default value = localhost
+ --port        Alarm Manager port. Default value = 8080
  --if          Used Alarm Manager command interface, http or rmr: default value = http
+ --active      Active alerts in Prometheus Alert Manager. Default value = true
+ --inhibited   Inhibited alerts in Prometheus Alert Manager. Default value = true
+ --silenced    Silenced alerts in Prometheus Alert Manager. Default value = true
+ --unprocessed Unprocessed alerts in Prometheus Alert Manager. Default value = true
+ --host        Prometheus Alert Manager host address
+ --port        Prometheus Alert Manager port. Default value = 9093
 
 
 ``Note that there are two minus signs before parameter name!``
@@ -260,6 +266,14 @@ CLI command examples:
   Endurance test example: cli/alarm-cli perf --prf 2 --nal 50 --aps 1 --tim 1 --if http
 
   Endurance test example: cli/alarm-cli perf --prf 2 --nal 50 --aps 1 --tim 1 --host localhost --port 8080 --if rmr
+
+Get alerts from Prometheus Alert Manager: 
+
+ .. code-block:: none
+
+  Syntax: cli/alarm-cli gapam --active --inhibited --silenced --unprocessed --host [--port]
+
+  Example: cli/alarm-cli gapam --active true --inhibited true --silenced true --unprocessed true --host 10.102.36.121 --port 9093
 
 
 REST interface usage guide

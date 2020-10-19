@@ -8,12 +8,17 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	clientruntime "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/jedib0t/go-pretty/table"
+	"github.com/prometheus/alertmanager/api/v2/client"
+	"github.com/prometheus/alertmanager/api/v2/client/alert"
 	"github.com/thatisuday/commando"
-	"sync"
+	"github.com/spf13/viper"
 )
 
 type CliAlarmDefinitions struct {
@@ -151,6 +156,20 @@ func main() {
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			conductperformancetest(flags)
+		})
+
+	// Get alerts from Prometheus Alert Manager
+	commando.
+		Register("gapam").
+		SetShortDescription("Get alerts from Prometheus Alert Manager").
+		AddFlag("active", "Active alerts in Prometheus Alert Manager", commando.Bool, true).
+		AddFlag("inhibited", "Inhibited alerts in Prometheus Alert Manager", commando.Bool, true).
+		AddFlag("silenced", "Silenced alerts in Prometheus Alert Manager", commando.Bool, true).
+		AddFlag("unprocessed", "Unprocessed alerts in Prometheus Alert Manager", commando.Bool, true).
+		AddFlag("host", "Prometheus Alert Manager host address", commando.String, nil).
+		AddFlag("port", "Prometheus Alert Manager port", commando.String, "9093").
+		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
+			displayAlerts(flags)
 		})
 
 	// parse command-line arguments
@@ -561,3 +580,90 @@ func raiseClearAlarmOverPeriod(alarmobject *alarm.Alarm, flags map[string]comman
 		}
 	}
 }
+
+func displayAlerts(flags map[string]commando.FlagValue) {
+	resp, err := getAlerts(flags)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if resp == nil {
+		fmt.Println("resp= nil")
+		return
+	}
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"Alerts from Prometheus Alert Manager"})
+	for _, gettableAlert := range resp.Payload{
+		t.AppendRow([]interface{}{"------------------------------------"})
+		if gettableAlert != nil {
+			for key, item := range gettableAlert.Annotations {
+				t.AppendRow([]interface{}{key, item})	
+			}
+			if gettableAlert.EndsAt != nil {
+				t.AppendRow([]interface{}{"EndsAt", *gettableAlert.EndsAt})
+			}
+			if gettableAlert.Fingerprint != nil {
+				t.AppendRow([]interface{}{"Fingerprint", *gettableAlert.Fingerprint})
+			}
+			for key, item := range gettableAlert.Receivers {
+				if gettableAlert.Receivers != nil {
+					t.AppendRow([]interface{}{key, *item.Name})	
+				}
+			}
+			if gettableAlert.StartsAt != nil {
+				t.AppendRow([]interface{}{"StartsAt", *gettableAlert.StartsAt})
+			}
+			if gettableAlert.Status != nil {
+				t.AppendRow([]interface{}{"InhibitedBy", gettableAlert.Status.InhibitedBy})
+				t.AppendRow([]interface{}{"SilencedBy", gettableAlert.Status.SilencedBy})
+				t.AppendRow([]interface{}{"State", *gettableAlert.Status.State})
+			}
+			if gettableAlert.UpdatedAt != nil {
+				t.AppendRow([]interface{}{"UpdatedAt", *gettableAlert.UpdatedAt})
+			}
+			t.AppendRow([]interface{}{"GeneratorURL", gettableAlert.Alert.GeneratorURL})
+			for key, item := range gettableAlert.Alert.Labels {
+				t.AppendRow([]interface{}{key, item})	
+			}
+		}
+	}
+	t.SetStyle(table.StyleColoredBright)
+	t.Render()
+}
+	
+func getAlerts(flags map[string]commando.FlagValue) (*alert.GetAlertsOK, error) {
+	active, _ := flags["active"].GetBool()
+	inhibited, _ := flags["inhibited"].GetBool()
+	silenced, _ := flags["silenced"].GetBool()
+	unprocessed, _ := flags["unprocessed"].GetBool()
+	amHost, _ := flags["host"].GetString()
+	amPort, _ := flags["port"].GetString()
+	var amAddress string
+	if amHost == "" {
+		amAddress = viper.GetString("controls.promAlertManager.address")
+	} else {
+		amAddress = amHost + ":" + amPort
+	}
+
+	alertParams := alert.NewGetAlertsParams()
+	alertParams.Active = &active
+	alertParams.Inhibited = &inhibited
+	alertParams.Silenced = &silenced
+	alertParams.Unprocessed = &unprocessed
+	amBaseUrl := viper.GetString("controls.promAlertManager.baseUrl")
+	amSchemes := []string{viper.GetString("controls.promAlertManager.schemes")}
+	resp, err := newAlertManagerClient(amAddress, amBaseUrl, amSchemes).Alert.GetAlerts(alertParams)
+	if err != nil {
+		err = fmt.Errorf("GetAlerts from '%s%s' failed with error: %v", amAddress, amBaseUrl, err)
+	}
+	return resp, err
+}
+
+func newAlertManagerClient(amAddress string, amBaseUrl string, amSchemes []string) *client.Alertmanager {
+	cr := clientruntime.New(amAddress, amBaseUrl, amSchemes)
+	return client.New(cr, strfmt.Default)
+}
+

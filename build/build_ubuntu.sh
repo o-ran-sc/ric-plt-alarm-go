@@ -44,8 +44,8 @@ export RMR_SEED_RT=../config/uta_rtg.rt
 
 # xApp stuff
 export DEF_FILE=../definitions/alarm-definition.json
-export PERF_DEF_FILE=../perfresources/perf-alarm-definition.json
-export PERF_OBJ_FILE=../perfresources/perf-alarm-object.json
+export PERF_DEF_FILE=../testresources/perf-alarm-definition.json
+export PERF_OBJ_FILE=../testresources/perf-alarm-object.json
 
 GO111MODULE=on GO_ENABLED=0 GOOS=linux
 
@@ -61,6 +61,10 @@ hash=$(git rev-parse --short HEAD || true)
 
 ROOT_DIR=$PWD
 
+
+# compile the CLI
+cd ${ROOT_DIR}/cli && go build -a -installsuffix cgo alarm-cli.go
+
 # Build
 cd ${ROOT_DIR}/manager && go build -a -installsuffix cgo -ldflags "-X main.Version=$tag -X main.Hash=$hash" -o alarm-manager ./cmd/*.go
 
@@ -69,8 +73,5 @@ cd ${ROOT_DIR}/alarm && go test . -v -coverprofile cover.out
 
 # And for the Alarm Manager
 cd ${ROOT_DIR}/manager && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./manager_test && ./manager_test
-
-# Finally compile the CLI
-cd ${ROOT_DIR}/cli && go build -a -installsuffix cgo alarm-cli.go
 
 echo "--> build_ubuntu.sh ends"

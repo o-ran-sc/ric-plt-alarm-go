@@ -36,8 +36,8 @@ FROM ubuntu:18.04
 COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
 COPY --from=ubuntu-alarm-manager /go/src/am/cli/alarm-cli /
-COPY --from=ubuntu-alarm-manager /go/src/am/perfresources/perf-alarm-object.json /
-COPY --from=ubuntu-alarm-manager /go/src/am/perfresources/perf-alarm-definition.json /
+COPY --from=ubuntu-alarm-manager /go/src/am/testresources/perf-alarm-object.json /
+COPY --from=ubuntu-alarm-manager /go/src/am/testresources/perf-alarm-definition.json /
 COPY --from=ubuntu-alarm-manager /go/src/am/config/* /
 COPY --from=ubuntu-alarm-manager /usr/local/lib /usr/local/lib
 COPY --from=ubuntu-alarm-manager /go/src/am/definitions/* / 

@@ -35,6 +35,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -331,6 +332,20 @@ func TestActiveAlarmMaxThresholds(t *testing.T) {
 	ts.Close()
 }
 
+func TestGetPrometheusAlerts(t *testing.T) {
+	time.Sleep(1 * time.Second)
+	xapp.Logger.Info("TestGetPrometheusAlerts")
+	ts := CreatePromAlertSimulator2(t, "GET", "/alerts?active=true&inhibited=true&silenced=true&unprocessed=true")
+
+	commandReady := make(chan bool, 1)
+	command := "cli/alarm-cli"
+	args := []string {"gapam", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
+	ExecCLICommand(commandReady, command, args...)
+	<-commandReady
+
+	ts.Close()
+}
+
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
@@ -370,6 +385,33 @@ func CreatePromAlertSimulator(t *testing.T, method, url string, status int, resp
 	return ts
 }
 
+func CreatePromAlertSimulator2(t *testing.T, method, url string) *httptest.Server {
+	l, err := net.Listen("tcp", "localhost:9093")
+	if err != nil {
+		t.Error("Failed to create listener: " + err.Error())
+	}
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, r.Method, method)
+		assert.Equal(t, r.URL.String(), url)
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(200)
+		// Read alerts from file
+		payload, err := readJSONFromFile("../testresources/prometheus-alerts.json")
+			if err != nil {
+				t.Error("Failed to send response: ", err)
+		}
+		_, err = w.Write(payload)
+		if err != nil {
+			t.Error("Failed to send response: " + err.Error())
+		}
+	}))
+	ts.Listener.Close()
+	ts.Listener = l
+	ts.Start()
+	return ts
+}
+
 func waitForEvent() string {
 	receivedAlert := <-eventChan
 	return receivedAlert
@@ -397,4 +439,28 @@ func checkResponseCode(t *testing.T, expected, actual int) bool {
 		return false
 	}
 	return true
+}
+
+func ExecCLICommand(commandReady chan bool, command string, args ...string) {
+	go func() {
+		xapp.Logger.Info("Giving CLI command")
+		cmd := exec.Command(command, args...)
+		cmd.Dir = "../"
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			xapp.Logger.Info("CLI command failed out: %s", err)
+		}
+		xapp.Logger.Info("CLI command output: %s", output)
+		commandReady <- true
+		xapp.Logger.Info("CLI command completed")
+	}()
+}
+
+func readJSONFromFile(filename string) ([]byte, error) {
+	file, err := ioutil.ReadFile(filename)
+	if err != nil {
+		err := fmt.Errorf("readJSONFromFile() failed: Error: %v", err)
+		return nil, err
+	}
+	return file, nil
 }
