@@ -71,10 +71,10 @@ func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 	}
 	app.Logger.Info("newAlarm: %v", m)
 
-	return a.ProcessAlarm(&m)
+	return a.ProcessAlarm(&AlarmInformation{m, alarm.AlarmDefinition{}})
 }
 
-func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK, error) {
+func (a *AlarmManager) ProcessAlarm(m *AlarmInformation) (*alert.PostAlertsOK, error) {
 	a.mutex.Lock()
 	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
@@ -101,17 +101,18 @@ func (a *AlarmManager) ProcessAlarm(m *alarm.AlarmMessage) (*alert.PostAlertsOK,
 		if found {
 			a.alarmHistory = append(a.alarmHistory, *m)
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
-			if ((len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false)){
+			if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
 				app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
 				histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
-				histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
+				am := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
+				histAlarmMessage := AlarmInformation{am, alarm.AlarmDefinition{}}
 				a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
 				a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
 			}
-			if ((a.exceededActiveAlarmOn == true) && (m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD)) {
+			if (a.exceededActiveAlarmOn == true) && (m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD) {
 				a.exceededActiveAlarmOn = false
 			}
-			if ((a.exceededAlarmHistoryOn == true) && (m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD)) {
+			if (a.exceededAlarmHistoryOn == true) && (m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD) {
 				a.exceededAlarmHistoryOn = false
 			}
 			if a.postClear {
@@ -145,32 +146,42 @@ func (a *AlarmManager) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	return -1, false
 }
 
-func (a *AlarmManager) RemoveAlarm(alarms []alarm.AlarmMessage, i int, listName string) []alarm.AlarmMessage {
+func (a *AlarmManager) RemoveAlarm(alarms []AlarmInformation, i int, listName string) []AlarmInformation {
 	app.Logger.Info("Alarm '%+v' deleted from the '%s' list", alarms[i], listName)
 	copy(alarms[i:], alarms[i+1:])
 	return alarms[:len(alarms)-1]
 }
 
-func (a *AlarmManager) UpdateAlarmLists(newAlarm *alarm.AlarmMessage) {
+func (a *AlarmManager) UpdateAlarmFields(newAlarm *AlarmInformation) {
+	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
+	newAlarm.AlarmId = a.uniqueAlarmId
+	a.uniqueAlarmId++ // @todo: generate a unique ID
+	newAlarm.AlarmText = alarmDef.AlarmText
+	newAlarm.EventType = alarmDef.EventType
+}
+
+func (a *AlarmManager) UpdateAlarmLists(newAlarm *AlarmInformation) {
 	/* If maximum number of active alarms is reached, an error log writing is made, and new alarm indicating the problem is raised.
 	   The attempt to raise the alarm next time will be supressed when found as duplicate. */
-	if ((len(a.activeAlarms) >= a.maxActiveAlarms) && (a.exceededActiveAlarmOn == false)) {
+	if (len(a.activeAlarms) >= a.maxActiveAlarms) && (a.exceededActiveAlarmOn == false) {
 		app.Logger.Error("active alarm count exceeded maxActiveAlarms threshold")
 		actAlarm := a.alarmClient.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "active")
 		actAlarmMessage := alarm.AlarmMessage{Alarm: actAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
-		a.activeAlarms = append(a.activeAlarms, actAlarmMessage)
-		a.alarmHistory = append(a.alarmHistory, actAlarmMessage)
+		a.activeAlarms = append(a.activeAlarms, AlarmInformation{actAlarmMessage, alarm.AlarmDefinition{}})
+		a.alarmHistory = append(a.alarmHistory, AlarmInformation{actAlarmMessage, alarm.AlarmDefinition{}})
 		a.exceededActiveAlarmOn = true
 	}
 
-	if ((len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false)) {
+	if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
 		app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
 		histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
 		histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
-		a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
-		a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
+		a.activeAlarms = append(a.activeAlarms, AlarmInformation{histAlarmMessage, alarm.AlarmDefinition{}})
+		a.alarmHistory = append(a.alarmHistory, AlarmInformation{histAlarmMessage, alarm.AlarmDefinition{}})
 		a.exceededAlarmHistoryOn = true
 	}
+
+	a.UpdateAlarmFields(newAlarm)
 
 	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
 	a.activeAlarms = append(a.activeAlarms, *newAlarm)
@@ -312,15 +323,16 @@ func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 	}
 
 	return &AlarmManager{
-		rmrReady:        false,
-		amHost:          amHost,
-		amBaseUrl:       viper.GetString("controls.promAlertManager.baseUrl"),
-		amSchemes:       []string{viper.GetString("controls.promAlertManager.schemes")},
-		alertInterval:   alertInterval,
-		activeAlarms:    make([]alarm.AlarmMessage, 0),
-		alarmHistory:    make([]alarm.AlarmMessage, 0),
-		maxActiveAlarms: app.Config.GetInt("controls.maxActiveAlarms"),
-		maxAlarmHistory: app.Config.GetInt("controls.maxAlarmHistory"),
+		rmrReady:               false,
+		amHost:                 amHost,
+		amBaseUrl:              viper.GetString("controls.promAlertManager.baseUrl"),
+		amSchemes:              []string{viper.GetString("controls.promAlertManager.schemes")},
+		alertInterval:          alertInterval,
+		activeAlarms:           make([]AlarmInformation, 0),
+		alarmHistory:           make([]AlarmInformation, 0),
+		uniqueAlarmId:          1,
+		maxActiveAlarms:        app.Config.GetInt("controls.maxActiveAlarms"),
+		maxAlarmHistory:        app.Config.GetInt("controls.maxAlarmHistory"),
 		exceededActiveAlarmOn:  false,
 		exceededAlarmHistoryOn: false,
 	}

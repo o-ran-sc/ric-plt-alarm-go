@@ -339,7 +339,7 @@ func TestGetPrometheusAlerts(t *testing.T) {
 
 	commandReady := make(chan bool, 1)
 	command := "cli/alarm-cli"
-	args := []string {"gapam", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
+	args := []string{"gapam", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
 	ExecCLICommand(commandReady, command, args...)
 	<-commandReady
 
@@ -398,8 +398,8 @@ func CreatePromAlertSimulator2(t *testing.T, method, url string) *httptest.Serve
 		w.WriteHeader(200)
 		// Read alerts from file
 		payload, err := readJSONFromFile("../testresources/prometheus-alerts.json")
-			if err != nil {
-				t.Error("Failed to send response: ", err)
+		if err != nil {
+			t.Error("Failed to send response: ", err)
 		}
 		_, err = w.Write(payload)
 		if err != nil {

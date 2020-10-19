@@ -27,20 +27,26 @@ import (
 )
 
 type AlarmManager struct {
-	amHost          string
-	amBaseUrl       string
-	amSchemes       []string
-	alertInterval   int
-	activeAlarms    []alarm.AlarmMessage
-	alarmHistory    []alarm.AlarmMessage
-	mutex           sync.Mutex
-	rmrReady        bool
-	postClear       bool
-	maxActiveAlarms int
-	maxAlarmHistory int
-	alarmClient     *alarm.RICAlarm
-	exceededActiveAlarmOn bool
+	amHost                 string
+	amBaseUrl              string
+	amSchemes              []string
+	alertInterval          int
+	activeAlarms           []AlarmInformation
+	alarmHistory           []AlarmInformation
+	uniqueAlarmId          int
+	mutex                  sync.Mutex
+	rmrReady               bool
+	postClear              bool
+	maxActiveAlarms        int
+	maxAlarmHistory        int
+	alarmClient            *alarm.RICAlarm
+	exceededActiveAlarmOn  bool
 	exceededAlarmHistoryOn bool
+}
+
+type AlarmInformation struct {
+	alarm.AlarmMessage
+	alarm.AlarmDefinition
 }
 
 type AlertStatus string
