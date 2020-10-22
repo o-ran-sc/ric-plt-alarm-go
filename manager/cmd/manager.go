@@ -21,6 +21,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
@@ -32,6 +33,7 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"time"
 )
@@ -71,10 +73,10 @@ func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 	}
 	app.Logger.Info("newAlarm: %v", m)
 
-	return a.ProcessAlarm(&AlarmInformation{m, alarm.AlarmDefinition{}})
+	return a.ProcessAlarm(&AlarmNotification{m, alarm.AlarmDefinition{}})
 }
 
-func (a *AlarmManager) ProcessAlarm(m *AlarmInformation) (*alert.PostAlertsOK, error) {
+func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, error) {
 	a.mutex.Lock()
 	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
@@ -99,24 +101,30 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmInformation) (*alert.PostAlertsOK, e
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
 		if found {
+			a.UpdateAlarmFields(a.activeAlarms[idx].AlarmId, m)
 			a.alarmHistory = append(a.alarmHistory, *m)
 			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
 			if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
-				app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
-				histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
-				am := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
-				histAlarmMessage := AlarmInformation{am, alarm.AlarmDefinition{}}
-				a.activeAlarms = append(a.activeAlarms, histAlarmMessage)
-				a.alarmHistory = append(a.alarmHistory, histAlarmMessage)
+				app.Logger.Warn("alarm history count exceeded maxAlarmHistory threshold")
+				a.GenerateThresholdAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, "history")
 			}
-			if (a.exceededActiveAlarmOn == true) && (m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD) {
+
+			if a.exceededActiveAlarmOn && m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD {
 				a.exceededActiveAlarmOn = false
 			}
-			if (a.exceededAlarmHistoryOn == true) && (m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD) {
+
+			if a.exceededAlarmHistoryOn && m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD {
 				a.exceededAlarmHistoryOn = false
 			}
+
 			if a.postClear {
 				a.mutex.Unlock()
+
+				// Send alarm notification to NOMA, if enabled
+				if app.Config.GetBool("controls.noma.enabled") {
+					m.PerceivedSeverity = alarm.SeverityCleared
+					return a.PostAlarm(m)
+				}
 				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved, m.AlarmTime))
 			}
 		}
@@ -127,8 +135,14 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmInformation) (*alert.PostAlertsOK, e
 
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
+		a.UpdateAlarmFields(a.GenerateAlarmId(), m)
 		a.UpdateAlarmLists(m)
 		a.mutex.Unlock()
+
+		// Send alarm notification to NOMA, if enabled
+		if app.Config.GetBool("controls.noma.enabled") {
+			return a.PostAlarm(m)
+		}
 		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
 	}
 
@@ -146,46 +160,71 @@ func (a *AlarmManager) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
 	return -1, false
 }
 
-func (a *AlarmManager) RemoveAlarm(alarms []AlarmInformation, i int, listName string) []AlarmInformation {
+func (a *AlarmManager) RemoveAlarm(alarms []AlarmNotification, i int, listName string) []AlarmNotification {
 	app.Logger.Info("Alarm '%+v' deleted from the '%s' list", alarms[i], listName)
 	copy(alarms[i:], alarms[i+1:])
 	return alarms[:len(alarms)-1]
 }
 
-func (a *AlarmManager) UpdateAlarmFields(newAlarm *AlarmInformation) {
-	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
-	newAlarm.AlarmId = a.uniqueAlarmId
+func (a *AlarmManager) GenerateAlarmId() int {
 	a.uniqueAlarmId++ // @todo: generate a unique ID
+	return a.uniqueAlarmId
+}
+
+func (a *AlarmManager) UpdateAlarmFields(alarmId int, newAlarm *AlarmNotification) {
+	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
+	newAlarm.AlarmId = alarmId
 	newAlarm.AlarmText = alarmDef.AlarmText
 	newAlarm.EventType = alarmDef.EventType
 }
 
-func (a *AlarmManager) UpdateAlarmLists(newAlarm *AlarmInformation) {
+func (a *AlarmManager) GenerateThresholdAlarm(sp int, data string) bool {
+	thresholdAlarm := a.alarmClient.NewAlarm(sp, alarm.SeverityWarning, "threshold", data)
+	thresholdMessage := alarm.AlarmMessage{
+		Alarm:       thresholdAlarm,
+		AlarmAction: alarm.AlarmActionRaise,
+		AlarmTime:   (time.Now().UnixNano()),
+	}
+	a.activeAlarms = append(a.activeAlarms, AlarmNotification{thresholdMessage, alarm.AlarmDefinition{}})
+	a.alarmHistory = append(a.alarmHistory, AlarmNotification{thresholdMessage, alarm.AlarmDefinition{}})
+
+	return true
+}
+
+func (a *AlarmManager) UpdateAlarmLists(newAlarm *AlarmNotification) {
 	/* If maximum number of active alarms is reached, an error log writing is made, and new alarm indicating the problem is raised.
 	   The attempt to raise the alarm next time will be supressed when found as duplicate. */
 	if (len(a.activeAlarms) >= a.maxActiveAlarms) && (a.exceededActiveAlarmOn == false) {
-		app.Logger.Error("active alarm count exceeded maxActiveAlarms threshold")
-		actAlarm := a.alarmClient.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "active")
-		actAlarmMessage := alarm.AlarmMessage{Alarm: actAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
-		a.activeAlarms = append(a.activeAlarms, AlarmInformation{actAlarmMessage, alarm.AlarmDefinition{}})
-		a.alarmHistory = append(a.alarmHistory, AlarmInformation{actAlarmMessage, alarm.AlarmDefinition{}})
-		a.exceededActiveAlarmOn = true
+		app.Logger.Warn("active alarm count exceeded maxActiveAlarms threshold")
+		a.exceededActiveAlarmOn = a.GenerateThresholdAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, "active")
 	}
 
 	if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
-		app.Logger.Error("alarm history count exceeded maxAlarmHistory threshold")
-		histAlarm := a.alarmClient.NewAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, alarm.SeverityWarning, "threshold", "history")
-		histAlarmMessage := alarm.AlarmMessage{Alarm: histAlarm, AlarmAction: alarm.AlarmActionRaise, AlarmTime: (time.Now().UnixNano())}
-		a.activeAlarms = append(a.activeAlarms, AlarmInformation{histAlarmMessage, alarm.AlarmDefinition{}})
-		a.alarmHistory = append(a.alarmHistory, AlarmInformation{histAlarmMessage, alarm.AlarmDefinition{}})
-		a.exceededAlarmHistoryOn = true
+		app.Logger.Warn("alarm history count exceeded maxAlarmHistory threshold")
+		a.exceededAlarmHistoryOn = a.GenerateThresholdAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, "history")
 	}
-
-	a.UpdateAlarmFields(newAlarm)
 
 	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
 	a.activeAlarms = append(a.activeAlarms, *newAlarm)
 	a.alarmHistory = append(a.alarmHistory, *newAlarm)
+}
+
+func (a *AlarmManager) PostAlarm(m *AlarmNotification) (*alert.PostAlertsOK, error) {
+	result, err := json.Marshal(m)
+	if err != nil {
+		app.Logger.Info("json.Marshal failed: %v", err)
+		return nil, err
+	}
+
+	fullUrl := fmt.Sprintf("%s/%s", app.Config.GetString("controls.noma.host"), app.Config.GetString("controls.noma.alarmUrl"))
+	app.Logger.Info("Posting alarm to '%s'", fullUrl)
+
+	resp, err := http.Post(fullUrl, "application/json", bytes.NewReader(result))
+	if err != nil || resp == nil {
+		app.Logger.Info("Unable to post alarm to '%s': %v", fullUrl, err)
+	}
+
+	return nil, err
 }
 
 func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus, alarmTime int64) (models.LabelSet, models.LabelSet) {
@@ -194,16 +233,18 @@ func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 		"status":      string(status),
 		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
-		"service":     fmt.Sprintf("%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
-		"system_name": fmt.Sprintf("RIC:%s:%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
+		"service":     fmt.Sprintf("%s/%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
+		"system_name": "RIC",
 	}
 	amAnnotations := models.LabelSet{
-		"alarm_id":        fmt.Sprintf("%d", alarmDef.AlarmId),
-		"description":     fmt.Sprintf("%d:%s:%s", newAlarm.SpecificProblem, newAlarm.IdentifyingInfo, newAlarm.AdditionalInfo),
-		"additional_info": newAlarm.AdditionalInfo,
-		"summary":         alarmDef.EventType,
-		"instructions":    alarmDef.OperationInstructions,
-		"timestamp":       fmt.Sprintf("%s", time.Unix(0, alarmTime).Format("02/01/2006, 15:04:05")),
+		"alarm_id":         fmt.Sprintf("%d", alarmDef.AlarmId),
+		"specific_problem": fmt.Sprintf("%d", newAlarm.SpecificProblem),
+		"event_type":       alarmDef.EventType,
+		"identifying_info": newAlarm.IdentifyingInfo,
+		"additional_info":  newAlarm.AdditionalInfo,
+		"description":      fmt.Sprintf("%s:%s", newAlarm.IdentifyingInfo, newAlarm.AdditionalInfo),
+		"instructions":     alarmDef.OperationInstructions,
+		"timestamp":        fmt.Sprintf("%s", time.Unix(0, alarmTime).Format("02/01/2006, 15:04:05")),
 	}
 
 	return amLabels, amAnnotations
@@ -306,14 +347,13 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
 
 	// Start background timer for re-raising alerts
-	a.postClear = sdlcheck
 	go a.StartAlertTimer()
 	a.alarmClient, _ = alarm.InitAlarm("SEP", "ALARMMANAGER")
 
 	app.RunWithParams(a, sdlcheck)
 }
 
-func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
+func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmManager {
 	if alertInterval == 0 {
 		alertInterval = viper.GetInt("controls.promAlertManager.alertInterval")
 	}
@@ -324,13 +364,14 @@ func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 
 	return &AlarmManager{
 		rmrReady:               false,
+		postClear:              clearAlarm,
 		amHost:                 amHost,
-		amBaseUrl:              viper.GetString("controls.promAlertManager.baseUrl"),
-		amSchemes:              []string{viper.GetString("controls.promAlertManager.schemes")},
+		amBaseUrl:              app.Config.GetString("controls.promAlertManager.baseUrl"),
+		amSchemes:              []string{app.Config.GetString("controls.promAlertManager.schemes")},
 		alertInterval:          alertInterval,
-		activeAlarms:           make([]AlarmInformation, 0),
-		alarmHistory:           make([]AlarmInformation, 0),
-		uniqueAlarmId:          1,
+		activeAlarms:           make([]AlarmNotification, 0),
+		alarmHistory:           make([]AlarmNotification, 0),
+		uniqueAlarmId:          0,
 		maxActiveAlarms:        app.Config.GetInt("controls.maxActiveAlarms"),
 		maxAlarmHistory:        app.Config.GetInt("controls.maxAlarmHistory"),
 		exceededActiveAlarmOn:  false,
@@ -340,5 +381,5 @@ func NewAlarmManager(amHost string, alertInterval int) *AlarmManager {
 
 // Main function
 func main() {
-	NewAlarmManager("", 0).Run(true)
+	NewAlarmManager("", 0, true).Run(true)
 }

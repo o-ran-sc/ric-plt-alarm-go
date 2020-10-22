@@ -48,7 +48,7 @@ var eventChan chan string
 
 // Test cases
 func TestMain(M *testing.M) {
-	alarmManager = NewAlarmManager("localhost:9093", 500)
+	alarmManager = NewAlarmManager("localhost:9093", 500, false)
 	alarmManager.alertInterval = 20000
 	go alarmManager.Run(false)
 	time.Sleep(time.Duration(10) * time.Second)

@@ -17,8 +17,8 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/prometheus/alertmanager/api/v2/client"
 	"github.com/prometheus/alertmanager/api/v2/client/alert"
-	"github.com/thatisuday/commando"
 	"github.com/spf13/viper"
+	"github.com/thatisuday/commando"
 )
 
 type CliAlarmDefinitions struct {
@@ -31,6 +31,11 @@ type AlarmClient struct {
 
 type RicPerfAlarmObjects struct {
 	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
+}
+
+type AlarmNotification struct {
+	alarm.AlarmMessage
+	alarm.AlarmDefinition
 }
 
 var CLIPerfAlarmObjects map[int]*alarm.Alarm
@@ -48,6 +53,15 @@ const (
 )
 
 func main() {
+	alarmManagerHost := "localhost"
+	if h := os.Getenv("ALARM_MANAGER_HOST"); h != "" {
+		alarmManagerHost = h
+	}
+
+	alertManagerHost := "localhost"
+	if h := os.Getenv("ALERT_MANAGER_HOST"); h != "" {
+		alertManagerHost = h
+	}
 
 	// configure commando
 	commando.
@@ -60,7 +74,7 @@ func main() {
 		Register("active").
 		SetShortDescription("Displays the SEP active alarms").
 		SetDescription("This command displays more information about the SEP active alarms").
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlarms(getAlarms(flags, "active"), false)
@@ -71,7 +85,7 @@ func main() {
 		Register("history").
 		SetShortDescription("Displays the SEP alarm history").
 		SetDescription("This command displays more information about the SEP alarm history").
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlarms(getAlarms(flags, "history"), true)
@@ -87,7 +101,7 @@ func main() {
 		AddFlag("severity", "Perceived severity", commando.String, nil).
 		AddFlag("iinfo", "Application identifying info", commando.String, nil).
 		AddFlag("aai", "Application additional info", commando.String, "-").
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
@@ -102,7 +116,7 @@ func main() {
 		AddFlag("apid", "Application Id", commando.String, nil).
 		AddFlag("sp", "Specific problem Id", commando.Int, nil).
 		AddFlag("iinfo", "Application identifying info", commando.String, nil).
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
@@ -115,7 +129,7 @@ func main() {
 		SetShortDescription("Configure alarm manager with given parameters").
 		AddFlag("mal", "max active alarms", commando.Int, nil).
 		AddFlag("mah", "max alarm history", commando.Int, nil).
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmConfig(flags)
@@ -128,7 +142,7 @@ func main() {
 		AddFlag("atx", "alarm text", commando.String, nil).
 		AddFlag("ety", "event type", commando.String, nil).
 		AddFlag("oin", "operation instructions", commando.String, nil).
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmDefinition(flags)
@@ -138,7 +152,7 @@ func main() {
 		Register("undefine").
 		SetShortDescription("Define alarm with given parameters").
 		AddFlag("aid", "alarm identifier", commando.Int, nil).
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			deleteAlarmDefinition(flags)
@@ -151,7 +165,7 @@ func main() {
 		AddFlag("nal", "number of alarms", commando.Int, nil).
 		AddFlag("aps", "alarms per sec", commando.Int, nil).
 		AddFlag("tim", "total time of test", commando.Int, nil).
-		AddFlag("host", "Alarm manager host address", commando.String, "localhost").
+		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		AddFlag("if", "http or rmr used as interface", commando.String, "http").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
@@ -166,7 +180,7 @@ func main() {
 		AddFlag("inhibited", "Inhibited alerts in Prometheus Alert Manager", commando.Bool, true).
 		AddFlag("silenced", "Silenced alerts in Prometheus Alert Manager", commando.Bool, true).
 		AddFlag("unprocessed", "Unprocessed alerts in Prometheus Alert Manager", commando.Bool, true).
-		AddFlag("host", "Prometheus Alert Manager host address", commando.String, nil).
+		AddFlag("host", "Prometheus Alert Manager host address", commando.String, alertManagerHost).
 		AddFlag("port", "Prometheus Alert Manager port", commando.String, "9093").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlerts(flags)
@@ -193,7 +207,7 @@ func readAlarmParams(flags map[string]commando.FlagValue, clear bool) (a alarm.A
 	return
 }
 
-func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (alarms []alarm.AlarmMessage) {
+func getAlarms(flags map[string]commando.FlagValue, action alarm.AlarmAction) (alarms []AlarmNotification) {
 	host, _ := flags["host"].GetString()
 	port, _ := flags["port"].GetString()
 	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/%s", host, port, action)
@@ -265,26 +279,27 @@ func postAlarm(flags map[string]commando.FlagValue, a alarm.Alarm, action alarm.
 		targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms", host, port)
 		postAlarmWithHttpIf(targetUrl, a, action)
 	}
+	fmt.Println("command executed successfully!")
 }
 
-func displayAlarms(alarms []alarm.AlarmMessage, isHistory bool) {
+func displayAlarms(alarms []AlarmNotification, isHistory bool) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	if isHistory {
-		t.AppendHeader(table.Row{"SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "ACTION", "TIME"})
+		t.AppendHeader(table.Row{"ID", "SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "ACTION", "TIME"})
 	} else {
-		t.AppendHeader(table.Row{"SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "TIME"})
+		t.AppendHeader(table.Row{"ID", "SP", "MOID", "APPID", "IINFO", "SEVERITY", "AAI", "TIME"})
 	}
 
 	for _, a := range alarms {
 		alarmTime := time.Unix(0, a.AlarmTime).Format("02/01/2006, 15:04:05")
 		if isHistory {
 			t.AppendRows([]table.Row{
-				{a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, a.AlarmAction, alarmTime},
+				{a.AlarmId, a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, a.AlarmAction, alarmTime},
 			})
 		} else {
 			t.AppendRows([]table.Row{
-				{a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, alarmTime},
+				{a.AlarmId, a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, alarmTime},
 			})
 		}
 	}
@@ -596,11 +611,11 @@ func displayAlerts(flags map[string]commando.FlagValue) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Alerts from Prometheus Alert Manager"})
-	for _, gettableAlert := range resp.Payload{
+	for _, gettableAlert := range resp.Payload {
 		t.AppendRow([]interface{}{"------------------------------------"})
 		if gettableAlert != nil {
 			for key, item := range gettableAlert.Annotations {
-				t.AppendRow([]interface{}{key, item})	
+				t.AppendRow([]interface{}{key, item})
 			}
 			if gettableAlert.EndsAt != nil {
 				t.AppendRow([]interface{}{"EndsAt", *gettableAlert.EndsAt})
@@ -610,7 +625,7 @@ func displayAlerts(flags map[string]commando.FlagValue) {
 			}
 			for key, item := range gettableAlert.Receivers {
 				if gettableAlert.Receivers != nil {
-					t.AppendRow([]interface{}{key, *item.Name})	
+					t.AppendRow([]interface{}{key, *item.Name})
 				}
 			}
 			if gettableAlert.StartsAt != nil {
@@ -626,14 +641,14 @@ func displayAlerts(flags map[string]commando.FlagValue) {
 			}
 			t.AppendRow([]interface{}{"GeneratorURL", gettableAlert.Alert.GeneratorURL})
 			for key, item := range gettableAlert.Alert.Labels {
-				t.AppendRow([]interface{}{key, item})	
+				t.AppendRow([]interface{}{key, item})
 			}
 		}
 	}
 	t.SetStyle(table.StyleColoredBright)
 	t.Render()
 }
-	
+
 func getAlerts(flags map[string]commando.FlagValue) (*alert.GetAlertsOK, error) {
 	active, _ := flags["active"].GetBool()
 	inhibited, _ := flags["inhibited"].GetBool()
@@ -666,4 +681,3 @@ func newAlertManagerClient(amAddress string, amBaseUrl string, amSchemes []strin
 	cr := clientruntime.New(amAddress, amBaseUrl, amSchemes)
 	return client.New(cr, strfmt.Default)
 }
-
