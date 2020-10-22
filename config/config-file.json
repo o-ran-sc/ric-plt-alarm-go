@@ -20,6 +20,11 @@
             "schemes": "http",
             "alertInterval": 30000
         },
+        "noma": {
+            "enabled": false,
+            "host": "http://service-ricplt-noma-http:8087",
+            "alarmUrl": "ric/v1/noma/alarms"
+        },
         "maxActiveAlarms": 5000,
         "maxAlarmHistory": 20000
     }

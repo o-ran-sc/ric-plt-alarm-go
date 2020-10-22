@@ -35,6 +35,12 @@
             "alarmText" : "ALARM HISTORY EXCEED MAX THRESHOLD",
             "eventType" : "equipment",
             "operationInstructions" : "Clear alarms or raise threshold"
+        },
+        {
+            "alarmId" : 911,
+            "alarmText" : "PRBSRBDLHighThres Threshold Crossed",
+            "eventType" : "qualityOfService",
+            "operationInstructions" : "Clear alarms or raise threshold"
         }
    ]
 }
