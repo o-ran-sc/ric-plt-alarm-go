@@ -25,6 +25,7 @@ RUN apt update && apt install -y iputils-ping net-tools curl sudo
 
 # Install dependencies, compile and test the module
 RUN mkdir -p /go/src/am
+RUN mkdir -p /cfg
 COPY . /go/src/am
 
 WORKDIR "/go/src/am"
@@ -38,7 +39,7 @@ COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
 COPY --from=ubuntu-alarm-manager /go/src/am/cli/alarm-cli /
 COPY --from=ubuntu-alarm-manager /go/src/am/testresources/perf-alarm-object.json /
 COPY --from=ubuntu-alarm-manager /go/src/am/testresources/perf-alarm-definition.json /
-COPY --from=ubuntu-alarm-manager /go/src/am/config/* /
+COPY --from=ubuntu-alarm-manager /go/src/am/config/* /cfg/
 COPY --from=ubuntu-alarm-manager /usr/local/lib /usr/local/lib
 COPY --from=ubuntu-alarm-manager /go/src/am/definitions/* / 
 
