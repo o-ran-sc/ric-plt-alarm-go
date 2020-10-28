@@ -26,6 +26,7 @@
             "alarmUrl": "ric/v1/noma/alarms"
         },
         "maxActiveAlarms": 5000,
-        "maxAlarmHistory": 20000
+        "maxAlarmHistory": 20000,
+        "alarmInfoPvFile": "/mnt/disk/amvol/alarminfo.json"
     }
 }

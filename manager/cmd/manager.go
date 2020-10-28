@@ -78,6 +78,7 @@ func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 
 func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, error) {
 	a.mutex.Lock()
+
 	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
 		a.mutex.Unlock()
@@ -117,6 +118,8 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 				a.exceededAlarmHistoryOn = false
 			}
 
+			a.WriteAlarmInfoToPersistentVolume()
+
 			if a.postClear {
 				a.mutex.Unlock()
 
@@ -137,6 +140,7 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 	if m.AlarmAction == alarm.AlarmActionRaise {
 		a.UpdateAlarmFields(a.GenerateAlarmId(), m)
 		a.UpdateAlarmLists(m)
+		a.WriteAlarmInfoToPersistentVolume()
 		a.mutex.Unlock()
 
 		// Send alarm notification to NOMA, if enabled
@@ -185,8 +189,11 @@ func (a *AlarmManager) GenerateThresholdAlarm(sp int, data string) bool {
 		AlarmAction: alarm.AlarmActionRaise,
 		AlarmTime:   (time.Now().UnixNano()),
 	}
-	a.activeAlarms = append(a.activeAlarms, AlarmNotification{thresholdMessage, alarm.AlarmDefinition{}})
-	a.alarmHistory = append(a.alarmHistory, AlarmNotification{thresholdMessage, alarm.AlarmDefinition{}})
+	alarmDef := alarm.RICAlarmDefinitions[sp]
+	alarmId := a.GenerateAlarmId()
+	alarmDef.AlarmId = alarmId
+	a.activeAlarms = append(a.activeAlarms, AlarmNotification{thresholdMessage, *alarmDef})
+	a.alarmHistory = append(a.alarmHistory, AlarmNotification{thresholdMessage, *alarmDef})
 
 	return true
 }
@@ -326,6 +333,43 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 	}
 }
 
+func (a *AlarmManager) ReadAlarmInfoFromPersistentVolume() {
+	var alarmpersistentinfo AlarmPersistentInfo
+	byteValue, rerr := ioutil.ReadFile(a.alarmInfoPvFile)
+	if rerr != nil {
+		app.Logger.Error("ararminfo.json file read error %v", rerr)
+	} else {
+		err := json.Unmarshal(byteValue, &alarmpersistentinfo)
+		if err != nil {
+			app.Logger.Error("alarmpersistentinfo json unmarshal error %v", err)
+		} else {
+			a.uniqueAlarmId = alarmpersistentinfo.UniqueAlarmId
+			a.activeAlarms = make([]AlarmNotification, len(alarmpersistentinfo.ActiveAlarms))
+			a.alarmHistory = make([]AlarmNotification, len(alarmpersistentinfo.AlarmHistory))
+			copy(a.activeAlarms, alarmpersistentinfo.ActiveAlarms)
+			copy(a.alarmHistory, alarmpersistentinfo.AlarmHistory)
+		}
+	}
+}
+
+func (a *AlarmManager) WriteAlarmInfoToPersistentVolume() {
+	var alarmpersistentinfo AlarmPersistentInfo
+	alarmpersistentinfo.UniqueAlarmId = a.uniqueAlarmId
+	alarmpersistentinfo.ActiveAlarms = make([]AlarmNotification, len(a.activeAlarms))
+	alarmpersistentinfo.AlarmHistory = make([]AlarmNotification, len(a.alarmHistory))
+	copy(alarmpersistentinfo.ActiveAlarms, a.activeAlarms)
+	copy(alarmpersistentinfo.AlarmHistory, a.alarmHistory)
+	wdata, err := json.MarshalIndent(alarmpersistentinfo, "", " ")
+	if err != nil {
+		app.Logger.Error("alarmpersistentinfo json marshal error %v", err)
+	} else {
+		werr := ioutil.WriteFile(a.alarmInfoPvFile, wdata, 0777)
+		if werr != nil {
+			app.Logger.Error("alarminfo.json file write error %v", werr)
+		}
+	}
+}
+
 func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
@@ -349,6 +393,8 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()
 	a.alarmClient, _ = alarm.InitAlarm("SEP", "ALARMMANAGER")
+
+	a.ReadAlarmInfoFromPersistentVolume()
 
 	app.RunWithParams(a, sdlcheck)
 }
@@ -376,6 +422,7 @@ func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmMa
 		maxAlarmHistory:        app.Config.GetInt("controls.maxAlarmHistory"),
 		exceededActiveAlarmOn:  false,
 		exceededAlarmHistoryOn: false,
+		alarmInfoPvFile:        app.Config.GetString("controls.alarmInfoPvFile"),
 	}
 }
 

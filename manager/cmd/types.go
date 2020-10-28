@@ -42,6 +42,7 @@ type AlarmManager struct {
 	alarmClient            *alarm.RICAlarm
 	exceededActiveAlarmOn  bool
 	exceededAlarmHistoryOn bool
+	alarmInfoPvFile        string
 }
 
 type AlarmNotification struct {
@@ -65,4 +66,10 @@ type RicAlarmDefinitions struct {
 
 type RicPerfAlarmObjects struct {
 	AlarmObjects []*alarm.Alarm `json:"alarmobjects"`
+}
+
+type AlarmPersistentInfo struct {
+	UniqueAlarmId int                 `json:"uiniquealarmid"`
+	ActiveAlarms  []AlarmNotification `json:"activealarms"`
+	AlarmHistory  []AlarmNotification `json:"alarmhistory"`
 }
