@@ -78,6 +78,7 @@ func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 
 func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, error) {
 	a.mutex.Lock()
+
 	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
 		a.mutex.Unlock()
@@ -117,6 +118,9 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 				a.exceededAlarmHistoryOn = false
 			}
 
+			a.WriteActiveAlarmsToPersistentVolume()
+			a.WriteAlarmHistoryToPersistentVolume()
+
 			if a.postClear {
 				a.mutex.Unlock()
 
@@ -137,6 +141,8 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 	if m.AlarmAction == alarm.AlarmActionRaise {
 		a.UpdateAlarmFields(a.GenerateAlarmId(), m)
 		a.UpdateAlarmLists(m)
+		a.WriteActiveAlarmsToPersistentVolume()
+		a.WriteAlarmHistoryToPersistentVolume()
 		a.mutex.Unlock()
 
 		// Send alarm notification to NOMA, if enabled
@@ -326,6 +332,40 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 	}
 }
 
+func (a *AlarmManager) ReadActiveAlarmsFromPersistentVolume() {
+	byteValue, rerr := ioutil.ReadFile(a.activeAlarmsPvFile)
+	if rerr != nil {
+		app.Logger.Error("activealarms.json file read error %v", rerr)
+	} else {
+		json.Unmarshal(byteValue, &(a.activeAlarms))
+	}
+}
+
+func (a *AlarmManager) WriteActiveAlarmsToPersistentVolume() {
+	wdata, _ := json.MarshalIndent(a.activeAlarms, "", " ")
+	werr := ioutil.WriteFile(a.activeAlarmsPvFile, wdata, 0777)
+	if werr != nil {
+		app.Logger.Error("activealarms.json file write error %v", werr)
+	}
+}
+
+func (a *AlarmManager) ReadAlarmHistoryFromPersistentVolume() {
+	byteValue, rerr := ioutil.ReadFile(a.alarmHistoryPvFile)
+	if rerr != nil {
+		app.Logger.Error("alarmhistory.json file read error %v", rerr)
+	} else {
+		json.Unmarshal(byteValue, &(a.alarmHistory))
+	}
+}
+
+func (a *AlarmManager) WriteAlarmHistoryToPersistentVolume() {
+	wdata, _ := json.MarshalIndent(a.alarmHistory, "", " ")
+	werr := ioutil.WriteFile(a.alarmHistoryPvFile, wdata, 0777)
+	if werr != nil {
+		app.Logger.Error("alarmhistory.json file write error %v", werr)
+	}
+}
+
 func (a *AlarmManager) Run(sdlcheck bool) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
@@ -349,6 +389,9 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()
 	a.alarmClient, _ = alarm.InitAlarm("SEP", "ALARMMANAGER")
+
+	a.ReadActiveAlarmsFromPersistentVolume()
+	a.ReadAlarmHistoryFromPersistentVolume()
 
 	app.RunWithParams(a, sdlcheck)
 }
@@ -376,6 +419,8 @@ func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmMa
 		maxAlarmHistory:        app.Config.GetInt("controls.maxAlarmHistory"),
 		exceededActiveAlarmOn:  false,
 		exceededAlarmHistoryOn: false,
+		activeAlarmsPvFile:     app.Config.GetString("controls.activeAlarmsPvFile"),
+		alarmHistoryPvFile:     app.Config.GetString("controls.alarmHistoryPvFile"),
 	}
 }
 

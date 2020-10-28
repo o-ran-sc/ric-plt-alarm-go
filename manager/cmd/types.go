@@ -42,6 +42,8 @@ type AlarmManager struct {
 	alarmClient            *alarm.RICAlarm
 	exceededActiveAlarmOn  bool
 	exceededAlarmHistoryOn bool
+	activeAlarmsPvFile     string
+	alarmHistoryPvFile     string
 }
 
 type AlarmNotification struct {
