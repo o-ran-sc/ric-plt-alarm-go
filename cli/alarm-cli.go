@@ -142,6 +142,8 @@ func main() {
 		AddFlag("atx", "alarm text", commando.String, nil).
 		AddFlag("ety", "event type", commando.String, nil).
 		AddFlag("oin", "operation instructions", commando.String, nil).
+		AddFlag("rad", "Raise alarm delay", commando.Int, 0).
+		AddFlag("cad", "Clear alarm delay", commando.Int, 0).
 		AddFlag("host", "Alarm manager host address", commando.String, alarmManagerHost).
 		AddFlag("port", "Alarm manager host address", commando.String, "8080").
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
@@ -292,15 +294,18 @@ func displayAlarms(alarms []AlarmNotification, isHistory bool) {
 	}
 
 	for _, a := range alarms {
+		// Do not show alarm before raiseDelay has elapsed
 		alarmTime := time.Unix(0, a.AlarmTime).Format("02/01/2006, 15:04:05")
 		if isHistory {
 			t.AppendRows([]table.Row{
 				{a.AlarmId, a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, a.AlarmAction, alarmTime},
 			})
 		} else {
-			t.AppendRows([]table.Row{
-				{a.AlarmId, a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, alarmTime},
-			})
+			if a.AlarmDefinition.RaiseDelay == 0 {
+				t.AppendRows([]table.Row{
+					{a.AlarmId, a.SpecificProblem, a.ManagedObjectId, a.ApplicationId, a.IdentifyingInfo, a.PerceivedSeverity, a.AdditionalInfo, alarmTime},
+				})
+			}
 		}
 	}
 
@@ -336,6 +341,9 @@ func postAlarmDefinition(flags map[string]commando.FlagValue) {
 	alarmtxt, _ := flags["atx"].GetString()
 	etype, _ := flags["ety"].GetString()
 	operation, _ := flags["oin"].GetString()
+	raiseDelay, _ := flags["rad"].GetInt()
+	clearDelay, _ := flags["cad"].GetInt()
+
 	targetUrl := fmt.Sprintf("http://%s:%s/ric/v1/alarms/define", host, port)
 
 	var alarmdefinition alarm.AlarmDefinition
@@ -343,6 +351,8 @@ func postAlarmDefinition(flags map[string]commando.FlagValue) {
 	alarmdefinition.AlarmText = alarmtxt
 	alarmdefinition.EventType = etype
 	alarmdefinition.OperationInstructions = operation
+	alarmdefinition.RaiseDelay = raiseDelay
+	alarmdefinition.ClearDelay = clearDelay
 
 	m := CliAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarmdefinition}}
 	jsonData, err := json.Marshal(m)
@@ -426,7 +436,6 @@ func conductperformancetest(flags map[string]commando.FlagValue) {
 	} else {
 		fmt.Println("reading performance alarm definitions from json file failed ")
 	}
-
 }
 
 func peakPerformanceTest(flags map[string]commando.FlagValue) {
@@ -466,7 +475,10 @@ func enduranceTest(flags map[string]commando.FlagValue) {
 }
 
 func readPerfAlarmObjectFromJson() error {
+
 	filename := os.Getenv("PERF_OBJ_FILE")
+	fmt.Printf("readPerfAlarmObjectFromJson: filename = %s\n", filename)
+
 	file, err := ioutil.ReadFile(filename)
 	if err == nil {
 		data := RicPerfAlarmObjects{}
@@ -483,18 +495,22 @@ func readPerfAlarmObjectFromJson() error {
 				CLIPerfAlarmObjects[alarmObject.SpecificProblem] = ricAlarmObject
 			}
 		} else {
-			fmt.Println("readPerfAlarmObjectFromJson: json.Unmarshal failed with error ", err)
+			fmt.Println("readPerfAlarmObjectFromJson: json.Unmarshal failed with error: ", err)
 			return err
 		}
 	} else {
-		fmt.Println("readPerfAlarmObjectFromJson: ioutil.ReadFile failed with error ", err)
+		fmt.Printf("readPerfAlarmObjectFromJson: ioutil.ReadFile failed with error: %v, filename: %s\n", err, filename)
+		fmt.Printf("readPerfAlarmObjectFromJson: current directory: %s\n", getCurrentDirectory())
 		return err
 	}
 	return nil
 }
 
 func readPerfAlarmDefinitionFromJson() error {
+
 	filename := os.Getenv("PERF_DEF_FILE")
+	fmt.Printf("ReadPerfAlarmDefinitionFromJson: filename = %s\n", filename)
+
 	file, err := ioutil.ReadFile(filename)
 	if err == nil {
 		data := CliAlarmDefinitions{}
@@ -511,6 +527,8 @@ func readPerfAlarmDefinitionFromJson() error {
 					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
 					ricAlarmDefintion.EventType = alarmDefinition.EventType
 					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					ricAlarmDefintion.RaiseDelay = alarmDefinition.RaiseDelay
+					ricAlarmDefintion.ClearDelay = alarmDefinition.ClearDelay
 					CliPerfAlarmDefinitions.AlarmDefinitions = append(CliPerfAlarmDefinitions.AlarmDefinitions, ricAlarmDefintion)
 				}
 			}
@@ -519,7 +537,9 @@ func readPerfAlarmDefinitionFromJson() error {
 			return err
 		}
 	} else {
-		fmt.Println("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error: ", err)
+		fmt.Printf("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error: %v, filename: %s\n", err, filename)
+		fmt.Printf("ReadPerfAlarmDefinitionFromJson: current directory: %s\n", getCurrentDirectory())
+	
 		return err
 	}
 	return nil
@@ -680,4 +700,12 @@ func getAlerts(flags map[string]commando.FlagValue) (*alert.GetAlertsOK, error) 
 func newAlertManagerClient(amAddress string, amBaseUrl string, amSchemes []string) *client.Alertmanager {
 	cr := clientruntime.New(amAddress, amBaseUrl, amSchemes)
 	return client.New(cr, strfmt.Default)
+}
+
+func getCurrentDirectory() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	return dir
 }

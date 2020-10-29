@@ -151,7 +151,9 @@ type AlarmDefinition struct {
 	AlarmId               int    `json:"alarmId"`
 	AlarmText             string `json:"alarmText"`
 	EventType             string `json:"eventType"`
-	OperationInstructions string `json:"operationinstructions"`
+	OperationInstructions string `json:"operationInstructions"`
+	RaiseDelay            int    `json:"raiseDelay"`
+	ClearDelay            int    `json:"clearDelay"`
 }
 
 var RICAlarmDefinitions map[int]*AlarmDefinition

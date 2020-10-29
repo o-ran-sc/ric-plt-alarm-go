@@ -89,36 +89,48 @@ func TestSetAlarmDefinitions(t *testing.T) {
 	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
 	alarm8004Definition.EventType = "Processing error"
 	alarm8004Definition.OperationInstructions = "Not defined"
+	alarm8004Definition.RaiseDelay = 0
+	alarm8004Definition.ClearDelay = 0
 
 	var alarm8005Definition alarm.AlarmDefinition
 	alarm8005Definition.AlarmId = alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS
 	alarm8005Definition.AlarmText = "TCP CONNECTIVITY LOST TO DBAAS"
 	alarm8005Definition.EventType = "Communication error"
 	alarm8005Definition.OperationInstructions = "Not defined"
+	alarm8005Definition.RaiseDelay = 0
+	alarm8005Definition.ClearDelay = 0
 
 	var alarm8006Definition alarm.AlarmDefinition
 	alarm8006Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_GNODEB
 	alarm8006Definition.AlarmText = "E2 CONNECTIVITY LOST TO G-NODEB"
 	alarm8006Definition.EventType = "Communication error"
 	alarm8006Definition.OperationInstructions = "Not defined"
+	alarm8006Definition.RaiseDelay = 0
+	alarm8006Definition.ClearDelay = 0
 
 	var alarm8007Definition alarm.AlarmDefinition
 	alarm8007Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_ENODEB
 	alarm8007Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB"
 	alarm8007Definition.EventType = "Communication error"
 	alarm8007Definition.OperationInstructions = "Not defined"
+	alarm8007Definition.RaiseDelay = 0
+	alarm8007Definition.ClearDelay = 0
 
 	var alarm8008Definition alarm.AlarmDefinition
 	alarm8008Definition.AlarmId = alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD
 	alarm8008Definition.AlarmText = "ACTIVE ALARM EXCEED MAX THRESHOLD"
 	alarm8008Definition.EventType = "storage warning"
 	alarm8008Definition.OperationInstructions = "Clear alarms or raise threshold"
+	alarm8008Definition.RaiseDelay = 0
+	alarm8008Definition.ClearDelay = 0
 
 	var alarm8009Definition alarm.AlarmDefinition
 	alarm8009Definition.AlarmId = alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD
 	alarm8009Definition.AlarmText = "ALARM HISTORY EXCEED MAX THRESHOLD"
 	alarm8009Definition.EventType = "storage warning"
 	alarm8009Definition.OperationInstructions = "Clear alarms or raise threshold"
+	alarm8009Definition.RaiseDelay = 0
+	alarm8009Definition.ClearDelay = 0
 
 	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition, &alarm8005Definition, &alarm8006Definition, &alarm8007Definition, &alarm8008Definition, &alarm8009Definition}}
 	pbodyEn, _ := json.Marshal(pbodyParams)
@@ -182,6 +194,8 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
 	alarm8004Definition.EventType = "Processing error"
 	alarm8004Definition.OperationInstructions = "Not defined"
+	alarm8004Definition.RaiseDelay = 0
+	alarm8004Definition.ClearDelay = 0
 	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition}}
 	pbodyEn, _ := json.Marshal(pbodyParams)
 	req, _ = http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
@@ -344,6 +358,136 @@ func TestGetPrometheusAlerts(t *testing.T) {
 	<-commandReady
 
 	ts.Close()
+}
+
+func TestDelayedAlarmRaiseAndClear(t *testing.T) {
+	xapp.Logger.Info("TestDelayedAlarmRaiseAndClear")
+
+	activeAlarmsBeforeTest := len(alarmManager.activeAlarms)
+	alarmHistoryBeforeTest := len(alarmManager.alarmHistory)
+
+	// Add new alarm definition
+	var alarm9999Definition alarm.AlarmDefinition
+	alarm9999Definition.AlarmId = 9999
+	alarm9999Definition.AlarmText = "DELAYED TEST ALARM"
+	alarm9999Definition.EventType = "Test type"
+	alarm9999Definition.OperationInstructions = "Not defined"
+	alarm9999Definition.RaiseDelay = 1
+	alarm9999Definition.ClearDelay = 1
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm9999Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Verify 9999 alarm definition
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
+	defer ts.Close()
+
+	// Raise alarm. Posting alert and updating alarm history should be delayed 
+	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
+	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+
+	// Clear the alarm and check the alarm is removed. Posting alert clear and updating alarm history should be delayed
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
+
+	time.Sleep(time.Duration(2) * time.Second)
+	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 2)
+}
+
+func TestDelayedAlarmRaiseAndClear2(t *testing.T) {
+	xapp.Logger.Info("TestDelayedAlarmRaiseAndClear2")
+
+	activeAlarmsBeforeTest := len(alarmManager.activeAlarms)
+	alarmHistoryBeforeTest := len(alarmManager.alarmHistory)
+
+	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
+	defer ts.Close()
+
+	// Raise two alarms. The first should be delayed
+	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
+	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+
+	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	assert.Nil(t, alarmer.Raise(b), "raise failed")
+	VerifyAlarm(t, b, activeAlarmsBeforeTest + 2)
+
+	// Clear two alarms. The first should be delayed. Check the alarms are removed
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
+	assert.Nil(t, alarmer.Clear(b), "clear failed")
+
+	time.Sleep(time.Duration(2) * time.Second)
+	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 4)
+}
+
+func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
+	xapp.Logger.Info("TestDelayedAlarmRaiseAndClear3")
+
+	// Delete exisitng 9999 alarm definition
+	req, _ := http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(9999, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Add updated 9999 alarm definition
+	var alarm9999Definition alarm.AlarmDefinition
+	alarm9999Definition.AlarmId = 9999
+	alarm9999Definition.AlarmText = "DELAYED TEST ALARM"
+	alarm9999Definition.EventType = "Test type"
+	alarm9999Definition.OperationInstructions = "Not defined"
+	alarm9999Definition.RaiseDelay = 1
+	alarm9999Definition.ClearDelay = 0
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm9999Definition}}
+	pbodyEn, _ := json.Marshal(pbodyParams)
+	req, _ = http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
+	handleFunc = http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Verify 9999 alarm definition
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	activeAlarmsBeforeTest := len(alarmManager.activeAlarms)
+	alarmHistoryBeforeTest := len(alarmManager.alarmHistory)
+
+	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
+	defer ts.Close()
+
+	// Raise two alarms. The first should be delayed
+	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
+	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+
+	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	assert.Nil(t, alarmer.Raise(b), "raise failed")
+	VerifyAlarm(t, b, activeAlarmsBeforeTest + 2)
+
+	// Clear two alarms. The first should be delayed. Check the alarms are removed
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
+	assert.Nil(t, alarmer.Clear(b), "clear failed")
+
+	time.Sleep(time.Duration(2) * time.Second)
+	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 4)
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
