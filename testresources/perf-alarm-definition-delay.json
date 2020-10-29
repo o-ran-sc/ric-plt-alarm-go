@@ -5,7 +5,7 @@
             "alarmText" : "PERFORMANCE TEST ALARM 1",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
+            "raiseDelay" : 1,
             "clearDelay" : 0
         },
         {
@@ -29,7 +29,7 @@
             "alarmText" : "PERFORMANCE TEST ALARM 4",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
+            "raiseDelay" : 2,
             "clearDelay" : 0
         },
         {
@@ -61,7 +61,7 @@
             "alarmText" : "PERFORMANCE TEST ALARM 8",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
+            "raiseDelay" : 3,
             "clearDelay" : 0
         },
         {
@@ -94,7 +94,7 @@
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1013,
@@ -126,7 +126,7 @@
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 2
         },
         {
             "alarmId" : 1017,
@@ -150,7 +150,7 @@
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 3
         },
         {
             "alarmId" : 1020,
@@ -181,8 +181,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 23",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 1,
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1024,
@@ -205,8 +205,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 26",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 2,
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1027,
@@ -229,8 +229,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 29",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 3,
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1030,
@@ -261,8 +261,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 33",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 1,
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1034,
@@ -285,8 +285,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 36",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 1,
+            "clearDelay" : 2
         },
         {
             "alarmId" : 1037,
@@ -309,8 +309,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 39",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 1,
+            "clearDelay" : 3
         },
         {
             "alarmId" : 1040,
@@ -333,8 +333,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 42",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 1,
+            "clearDelay" : 1
         },
         {
             "alarmId" : 1043,
@@ -357,8 +357,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 45",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 2,
+            "clearDelay" : 2
         },
         {
             "alarmId" : 1046,
@@ -381,8 +381,8 @@
             "alarmText" : "PERFORMANCE TEST ALARM 48",
             "eventType" : "Performance test",
             "operationInstructions" : "Not defined",
-            "raiseDelay" : 0,
-            "clearDelay" : 0
+            "raiseDelay" : 3,
+            "clearDelay" : 3
         },
         {
             "alarmId" : 1049,

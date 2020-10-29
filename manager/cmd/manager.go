@@ -24,6 +24,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"time"
+
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	clientruntime "github.com/go-openapi/runtime/client"
@@ -32,10 +37,6 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/client/alert"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"time"
 )
 
 func (a *AlarmManager) StartAlertTimer() {
@@ -78,15 +79,16 @@ func (a *AlarmManager) HandleAlarms(rp *app.RMRParams) (*alert.PostAlertsOK, err
 
 func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, error) {
 	a.mutex.Lock()
-
-	if _, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
+	alarmDef := &alarm.AlarmDefinition{}
+	var ok bool
+	if alarmDef, ok = alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]; !ok {
 		app.Logger.Warn("Alarm (SP='%d') not recognized, suppressing ...", m.Alarm.SpecificProblem)
 		a.mutex.Unlock()
 		return nil, nil
 	}
 
-	// Suppress duplicate alarms
 	idx, found := a.IsMatchFound(m.Alarm)
+	// Suppress duplicate alarms
 	if found && m.AlarmAction == alarm.AlarmActionRaise {
 		app.Logger.Info("Duplicate alarm found, suppressing ...")
 		if m.PerceivedSeverity == a.activeAlarms[idx].PerceivedSeverity {
@@ -102,24 +104,9 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
 		if found {
-			a.UpdateAlarmFields(a.activeAlarms[idx].AlarmId, m)
-			a.alarmHistory = append(a.alarmHistory, *m)
-			a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
-			if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
-				app.Logger.Warn("alarm history count exceeded maxAlarmHistory threshold")
-				a.GenerateThresholdAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, "history")
+			if a.ProcessClearAlarm(m, alarmDef, idx) == false {
+				return nil, nil
 			}
-
-			if a.exceededActiveAlarmOn && m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD {
-				a.exceededActiveAlarmOn = false
-			}
-
-			if a.exceededAlarmHistoryOn && m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD {
-				a.exceededAlarmHistoryOn = false
-			}
-
-			a.WriteAlarmInfoToPersistentVolume()
-
 			if a.postClear {
 				a.mutex.Unlock()
 
@@ -138,11 +125,9 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
-		a.UpdateAlarmFields(a.GenerateAlarmId(), m)
-		a.UpdateAlarmLists(m)
-		a.WriteAlarmInfoToPersistentVolume()
-		a.mutex.Unlock()
-
+		if a.ProcessRaiseAlarm(m, alarmDef) == false {
+			return nil, nil
+		}
 		// Send alarm notification to NOMA, if enabled
 		if app.Config.GetBool("controls.noma.enabled") {
 			return a.PostAlarm(m)
@@ -152,6 +137,75 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 
 	a.mutex.Unlock()
 	return nil, nil
+}
+
+func (a *AlarmManager)ProcessRaiseAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition) bool {
+	app.Logger.Debug("Raise alarmDef.RaiseDelay = %v, AlarmNotification = %v", alarmDef.RaiseDelay, *m)
+	// RaiseDelay > 0 in an alarm object in active alarm table indicates that raise delay is still ongoing for the alarm
+	m.AlarmDefinition.RaiseDelay = alarmDef.RaiseDelay
+	a.UpdateAlarmFields(a.GenerateAlarmId(), m)
+	a.UpdateActiveAlarmList(m)
+	a.mutex.Unlock()
+	if alarmDef.RaiseDelay > 0 {
+		timerDelay(alarmDef.RaiseDelay)
+		a.mutex.Lock()
+		// Alarm may have been deleted from active alarms table during delay or table index may have changed
+		idx, found := a.IsMatchFound(m.Alarm)
+		if found {
+			// Alarm is not showed in active alarms or alarm history via CLI before RaiseDelay has elapsed, i.e the value is 0
+			a.activeAlarms[idx].AlarmDefinition.RaiseDelay = 0
+			app.Logger.Debug("Raise after delay alarmDef.RaiseDelay = %v, AlarmNotification = %v", alarmDef.RaiseDelay, *m)
+			a.mutex.Unlock()
+		} else {
+			app.Logger.Debug("Alarm deleted during raise delay. AlarmNotification = %v", *m)
+			a.mutex.Unlock()
+			return false
+		}
+	}
+	m.AlarmDefinition.RaiseDelay = 0
+	a.UpdateAlarmHistoryList(m)
+	a.WriteAlarmInfoToPersistentVolume()	
+	return true
+}
+
+func (a *AlarmManager)ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition, idx int) bool {
+	app.Logger.Debug("Clear alarmDef.ClearDelay = %v, AlarmNotification = %v", alarmDef.ClearDelay, *m)
+	if alarmDef.ClearDelay > 0 {
+		a.mutex.Unlock()
+		timerDelay(alarmDef.ClearDelay)
+		app.Logger.Debug("Clear after delay alarmDef.ClearDelay = %v, AlarmNotification = %v", alarmDef.ClearDelay, *m)
+		a.mutex.Lock()
+		// Another alarm clear may have happened during delay and active alarms table index changed
+		var found bool
+		idx, found = a.IsMatchFound(m.Alarm)
+		if !found {
+			app.Logger.Debug("Alarm not anymore in the active alarms table. AlarmNotification = %v", *m)
+			a.mutex.Unlock()
+			return false
+		}
+	}
+	a.UpdateAlarmFields(a.activeAlarms[idx].AlarmId, m)
+	a.alarmHistory = append(a.alarmHistory, *m)
+	a.activeAlarms = a.RemoveAlarm(a.activeAlarms, idx, "active")
+	if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
+		app.Logger.Warn("alarm history count exceeded maxAlarmHistory threshold")
+		a.GenerateThresholdAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, "history")
+	}
+
+	if a.exceededActiveAlarmOn && m.Alarm.SpecificProblem == alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD {
+		a.exceededActiveAlarmOn = false
+	}
+
+	if a.exceededAlarmHistoryOn && m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD {
+		a.exceededAlarmHistoryOn = false
+	}
+	a.WriteAlarmInfoToPersistentVolume()	
+	return true
+}
+
+func timerDelay(delay int) {
+	timer := time.NewTimer(time.Duration(delay) * time.Second)
+	<-timer.C
 }
 
 func (a *AlarmManager) IsMatchFound(newAlarm alarm.Alarm) (int, bool) {
@@ -198,21 +252,29 @@ func (a *AlarmManager) GenerateThresholdAlarm(sp int, data string) bool {
 	return true
 }
 
-func (a *AlarmManager) UpdateAlarmLists(newAlarm *AlarmNotification) {
+func (a *AlarmManager) UpdateActiveAlarmList(newAlarm *AlarmNotification) {
 	/* If maximum number of active alarms is reached, an error log writing is made, and new alarm indicating the problem is raised.
-	   The attempt to raise the alarm next time will be supressed when found as duplicate. */
+	   The attempt to raise the alarm next time will be suppressed when found as duplicate. */
 	if (len(a.activeAlarms) >= a.maxActiveAlarms) && (a.exceededActiveAlarmOn == false) {
 		app.Logger.Warn("active alarm count exceeded maxActiveAlarms threshold")
 		a.exceededActiveAlarmOn = a.GenerateThresholdAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, "active")
 	}
+
+	// @todo: For now just keep the  active alarms in-memory. Use SDL later for persistence
+	a.activeAlarms = append(a.activeAlarms, *newAlarm)
+}
+
+func (a *AlarmManager) UpdateAlarmHistoryList(newAlarm *AlarmNotification) {
+	/* If maximum number of events in alarm history is reached, an error log writing is made,
+	   and new alarm indicating the problem is raised. The attempt to add new event time will
+	   be suppressed */
 
 	if (len(a.alarmHistory) >= a.maxAlarmHistory) && (a.exceededAlarmHistoryOn == false) {
 		app.Logger.Warn("alarm history count exceeded maxAlarmHistory threshold")
 		a.exceededAlarmHistoryOn = a.GenerateThresholdAlarm(alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD, "history")
 	}
 
-	// @todo: For now just keep the alarms (both active and history) in-memory. Use SDL later for persistence
-	a.activeAlarms = append(a.activeAlarms, *newAlarm)
+	// @todo: For now just keep the alarms history in-memory. Use SDL later for persistence
 	a.alarmHistory = append(a.alarmHistory, *newAlarm)
 }
 
@@ -322,6 +384,8 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 					ricAlarmDefintion.AlarmText = alarmDefinition.AlarmText
 					ricAlarmDefintion.EventType = alarmDefinition.EventType
 					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
+					ricAlarmDefintion.RaiseDelay = alarmDefinition.RaiseDelay
+					ricAlarmDefintion.ClearDelay = alarmDefinition.ClearDelay
 					alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
 				}
 			}

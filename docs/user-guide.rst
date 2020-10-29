@@ -147,6 +147,8 @@ CLI commands can have some of the following parameters
  --atx         Alarm text string, example string: E2 CONNECTIVITY LOST TO E-NODEB
  --ety         Event type string, example string: Communication error
  --oin         Operation instructions string, example string: Not defined
+ --rad         Raise alarm delay in seconds. Default value = 0
+ --cad         Clear alarm delay in seconds. Default value = 0
  --prf         Performance profile id, possible values: 1 = peak performance test or 2 = endurance test
  --nal         Number of alarms, example value: 50
  --aps         Alarms per second, example value: 1
@@ -226,11 +228,11 @@ CLI command examples:
 
  .. code-block:: none
 
-  Syntax: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined" [--host] [--port]
+  Syntax: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined" [--rad] [--cad] [--host] [--port]
 
-  Example: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined"
+  Example: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined" --rad 0 --cad 0
 
-  Example: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined" --host localhost --port 8080
+  Example: cli/alarm-cli define --aid 8007 --atx "E2 CONNECTIVITY LOST TO E-NODEB" --ety "Communication error" --oin "Not defined" --rad 0 --cad 0 --host localhost --port 8080
 
  Delete existing alarm definition:
 
@@ -319,11 +321,11 @@ Below are examples for REST interface. Curl tool is used to send REST commands.
 
  Add one new alarm definition:
 
-   Example: curl -X POST "http://localhost:8080/ric/v1/alarms/define" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"alarmdefinitions\": [{\"alarmId\": 8007, \"alarmText\": \"E2 CONNECTIVITY LOST TO E-NODEB\", \"eventtype\": \"Communication error\", \"operationinstructions\": \"Not defined\"}]}"
+   Example: curl -X POST "http://localhost:8080/ric/v1/alarms/define" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"alarmdefinitions\": [{\"alarmId\": 8007, \"alarmText\": \"E2 CONNECTIVITY LOST TO E-NODEB\", \"eventtype\": \"Communication error\", \"operationinstructions\": \"Not defined\, \"raiseDelay\": 1, \"clearDelay\": 1"}]}"
 
  Add two new alarm definitions:
 
-   Example: curl -X POST "http://localhost:8080/ric/v1/alarms/define" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"alarmdefinitions\": [{\"alarmId\": 8007, \"alarmText\": \"E2 CONNECTIVITY LOST TO E-NODEB\", \"eventtype\": \"Communication error\", \"operationinstructions\": \"Not defined\"},{\"alarmId\": 8008, \"alarmText\": \"ACTIVE ALARM EXCEED MAX THRESHOLD\", \"eventtype\": \"storage warning\", \"operationinstructions\": \"Clear alarms or raise threshold\"}]}"
+   Example: curl -X POST "http://localhost:8080/ric/v1/alarms/define" -H "accept: application/json" -H "Content-Type: application/json" -d "{\"alarmdefinitions\": [{\"alarmId\": 8007, \"alarmText\": \"E2 CONNECTIVITY LOST TO E-NODEB\", \"eventtype\": \"Communication error\", \"operationinstructions\": \"Not defined\, \"raiseDelay\": 0, \"clearDelay\": 0"},{\"alarmId\": 8008, \"alarmText\": \"ACTIVE ALARM EXCEED MAX THRESHOLD\", \"eventtype\": \"storage warning\", \"operationinstructions\": \"Clear alarms or raise threshold\", \"raiseDelay\": 0, \"clearDelay\": 0}]}"
 
  Delete one existing alarm definition:
 
