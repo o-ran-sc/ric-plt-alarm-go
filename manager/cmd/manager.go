@@ -103,24 +103,27 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 
 	// Clear alarm if found from active alarm list
 	if m.AlarmAction == alarm.AlarmActionClear {
-		if found {
-			if a.ProcessClearAlarm(m, alarmDef, idx) == false {
-				return nil, nil
-			}
-			if a.postClear {
-				a.mutex.Unlock()
-
-				// Send alarm notification to NOMA, if enabled
-				if app.Config.GetBool("controls.noma.enabled") {
-					m.PerceivedSeverity = alarm.SeverityCleared
-					return a.PostAlarm(m)
-				}
-				return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusResolved, m.AlarmTime))
-			}
+		if !found {
+			app.Logger.Info("No matching active alarm found, suppressing ...")
+			a.mutex.Unlock()
+			return nil, nil
 		}
-		app.Logger.Info("No matching active alarm found, suppressing ...")
+
+		if a.ProcessClearAlarm(m, alarmDef, idx) == false {
+			return nil, nil
+		}
+
 		a.mutex.Unlock()
-		return nil, nil
+		if !a.postClear {
+			app.Logger.Info("Sending clear notification disabled!")
+			return nil, nil
+		}
+
+		// Send alarm notification to NOMA, if enabled
+		if app.Config.GetBool("controls.noma.enabled") {
+			m.PerceivedSeverity = alarm.SeverityCleared
+			return a.PostAlarm(m)
+		}
 	}
 
 	// New alarm -> update active alarms and post to Alert Manager

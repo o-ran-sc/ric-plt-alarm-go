@@ -17,6 +17,7 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/prometheus/alertmanager/api/v2/client"
 	"github.com/prometheus/alertmanager/api/v2/client/alert"
+	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/spf13/viper"
 	"github.com/thatisuday/commando"
 )
@@ -616,6 +617,39 @@ func raiseClearAlarmOverPeriod(alarmobject *alarm.Alarm, flags map[string]comman
 	}
 }
 
+func displaySingleAlert(t table.Writer, gettableAlert *models.GettableAlert) {
+	t.AppendRow([]interface{}{"------------------------------------"})
+	for key, item := range gettableAlert.Annotations {
+		t.AppendRow([]interface{}{key, item})
+	}
+	if gettableAlert.EndsAt != nil {
+		t.AppendRow([]interface{}{"EndsAt", *gettableAlert.EndsAt})
+	}
+	if gettableAlert.Fingerprint != nil {
+		t.AppendRow([]interface{}{"Fingerprint", *gettableAlert.Fingerprint})
+	}
+	for key, item := range gettableAlert.Receivers {
+		if gettableAlert.Receivers != nil {
+			t.AppendRow([]interface{}{key, *item.Name})
+		}
+	}
+	if gettableAlert.StartsAt != nil {
+		t.AppendRow([]interface{}{"StartsAt", *gettableAlert.StartsAt})
+	}
+	if gettableAlert.Status != nil {
+		t.AppendRow([]interface{}{"InhibitedBy", gettableAlert.Status.InhibitedBy})
+		t.AppendRow([]interface{}{"SilencedBy", gettableAlert.Status.SilencedBy})
+		t.AppendRow([]interface{}{"State", *gettableAlert.Status.State})
+	}
+	if gettableAlert.UpdatedAt != nil {
+		t.AppendRow([]interface{}{"UpdatedAt", *gettableAlert.UpdatedAt})
+	}
+	t.AppendRow([]interface{}{"GeneratorURL", gettableAlert.Alert.GeneratorURL})
+	for key, item := range gettableAlert.Alert.Labels {
+		t.AppendRow([]interface{}{key, item})
+	}
+}
+
 func displayAlerts(flags map[string]commando.FlagValue) {
 	resp, err := getAlerts(flags)
 	if err != nil {
@@ -632,38 +666,11 @@ func displayAlerts(flags map[string]commando.FlagValue) {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Alerts from Prometheus Alert Manager"})
 	for _, gettableAlert := range resp.Payload {
-		t.AppendRow([]interface{}{"------------------------------------"})
-		if gettableAlert != nil {
-			for key, item := range gettableAlert.Annotations {
-				t.AppendRow([]interface{}{key, item})
-			}
-			if gettableAlert.EndsAt != nil {
-				t.AppendRow([]interface{}{"EndsAt", *gettableAlert.EndsAt})
-			}
-			if gettableAlert.Fingerprint != nil {
-				t.AppendRow([]interface{}{"Fingerprint", *gettableAlert.Fingerprint})
-			}
-			for key, item := range gettableAlert.Receivers {
-				if gettableAlert.Receivers != nil {
-					t.AppendRow([]interface{}{key, *item.Name})
-				}
-			}
-			if gettableAlert.StartsAt != nil {
-				t.AppendRow([]interface{}{"StartsAt", *gettableAlert.StartsAt})
-			}
-			if gettableAlert.Status != nil {
-				t.AppendRow([]interface{}{"InhibitedBy", gettableAlert.Status.InhibitedBy})
-				t.AppendRow([]interface{}{"SilencedBy", gettableAlert.Status.SilencedBy})
-				t.AppendRow([]interface{}{"State", *gettableAlert.Status.State})
-			}
-			if gettableAlert.UpdatedAt != nil {
-				t.AppendRow([]interface{}{"UpdatedAt", *gettableAlert.UpdatedAt})
-			}
-			t.AppendRow([]interface{}{"GeneratorURL", gettableAlert.Alert.GeneratorURL})
-			for key, item := range gettableAlert.Alert.Labels {
-				t.AppendRow([]interface{}{key, item})
-			}
+		if gettableAlert == nil {
+			continue
 		}
+
+		displaySingleAlert(t, gettableAlert)
 	}
 	t.SetStyle(table.StyleColoredBright)
 	t.Render()
