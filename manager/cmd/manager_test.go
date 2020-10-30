@@ -392,17 +392,17 @@ func TestDelayedAlarmRaiseAndClear(t *testing.T) {
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
-	// Raise alarm. Posting alert and updating alarm history should be delayed 
+	// Raise alarm. Posting alert and updating alarm history should be delayed
 	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
-	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+	VerifyAlarm(t, a, activeAlarmsBeforeTest+1)
 
 	// Clear the alarm and check the alarm is removed. Posting alert clear and updating alarm history should be delayed
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
-	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 2)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest+2)
 }
 
 func TestDelayedAlarmRaiseAndClear2(t *testing.T) {
@@ -417,11 +417,11 @@ func TestDelayedAlarmRaiseAndClear2(t *testing.T) {
 	// Raise two alarms. The first should be delayed
 	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
-	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+	VerifyAlarm(t, a, activeAlarmsBeforeTest+1)
 
 	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
-	VerifyAlarm(t, b, activeAlarmsBeforeTest + 2)
+	VerifyAlarm(t, b, activeAlarmsBeforeTest+2)
 
 	// Clear two alarms. The first should be delayed. Check the alarms are removed
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
@@ -429,7 +429,7 @@ func TestDelayedAlarmRaiseAndClear2(t *testing.T) {
 
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
-	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 4)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest+4)
 }
 
 func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
@@ -475,11 +475,11 @@ func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
 	// Raise two alarms. The first should be delayed
 	a := alarmer.NewAlarm(9999, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
-	VerifyAlarm(t, a, activeAlarmsBeforeTest + 1)
+	VerifyAlarm(t, a, activeAlarmsBeforeTest+1)
 
 	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
-	VerifyAlarm(t, b, activeAlarmsBeforeTest + 2)
+	VerifyAlarm(t, b, activeAlarmsBeforeTest+2)
 
 	// Clear two alarms. The first should be delayed. Check the alarms are removed
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
@@ -487,7 +487,7 @@ func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
 
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
-	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest + 4)
+	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest+4)
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {

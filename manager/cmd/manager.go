@@ -102,53 +102,28 @@ func (a *AlarmManager) ProcessAlarm(m *AlarmNotification) (*alert.PostAlertsOK, 
 	}
 
 	// Clear alarm if found from active alarm list
-	if m.AlarmAction == alarm.AlarmActionClear {
-		if !found {
-			app.Logger.Info("No matching active alarm found, suppressing ...")
-			a.mutex.Unlock()
-			return nil, nil
-		}
-
-		if a.ProcessClearAlarm(m, alarmDef, idx) == false {
-			return nil, nil
-		}
-
-		a.mutex.Unlock()
-		if !a.postClear {
-			app.Logger.Info("Sending clear notification disabled!")
-			return nil, nil
-		}
-
-		// Send alarm notification to NOMA, if enabled
-		if app.Config.GetBool("controls.noma.enabled") {
-			m.PerceivedSeverity = alarm.SeverityCleared
-			return a.PostAlarm(m)
-		}
+	if found && m.AlarmAction == alarm.AlarmActionClear {
+		return a.ProcessClearAlarm(m, alarmDef, idx)
 	}
 
 	// New alarm -> update active alarms and post to Alert Manager
 	if m.AlarmAction == alarm.AlarmActionRaise {
-		if a.ProcessRaiseAlarm(m, alarmDef) == false {
-			return nil, nil
-		}
-		// Send alarm notification to NOMA, if enabled
-		if app.Config.GetBool("controls.noma.enabled") {
-			return a.PostAlarm(m)
-		}
-		return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
+		return a.ProcessRaiseAlarm(m, alarmDef)
 	}
 
 	a.mutex.Unlock()
 	return nil, nil
 }
 
-func (a *AlarmManager)ProcessRaiseAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition) bool {
+func (a *AlarmManager) ProcessRaiseAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition) (*alert.PostAlertsOK, error) {
 	app.Logger.Debug("Raise alarmDef.RaiseDelay = %v, AlarmNotification = %v", alarmDef.RaiseDelay, *m)
+
 	// RaiseDelay > 0 in an alarm object in active alarm table indicates that raise delay is still ongoing for the alarm
 	m.AlarmDefinition.RaiseDelay = alarmDef.RaiseDelay
 	a.UpdateAlarmFields(a.GenerateAlarmId(), m)
 	a.UpdateActiveAlarmList(m)
 	a.mutex.Unlock()
+
 	if alarmDef.RaiseDelay > 0 {
 		timerDelay(alarmDef.RaiseDelay)
 		a.mutex.Lock()
@@ -162,16 +137,22 @@ func (a *AlarmManager)ProcessRaiseAlarm(m *AlarmNotification, alarmDef *alarm.Al
 		} else {
 			app.Logger.Debug("Alarm deleted during raise delay. AlarmNotification = %v", *m)
 			a.mutex.Unlock()
-			return false
+			return nil, nil
 		}
 	}
+
 	m.AlarmDefinition.RaiseDelay = 0
 	a.UpdateAlarmHistoryList(m)
-	a.WriteAlarmInfoToPersistentVolume()	
-	return true
+	a.WriteAlarmInfoToPersistentVolume()
+
+	// Send alarm notification to NOMA, if enabled
+	if app.Config.GetBool("controls.noma.enabled") {
+		return a.PostAlarm(m)
+	}
+	return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
 }
 
-func (a *AlarmManager)ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition, idx int) bool {
+func (a *AlarmManager) ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition, idx int) (*alert.PostAlertsOK, error) {
 	app.Logger.Debug("Clear alarmDef.ClearDelay = %v, AlarmNotification = %v", alarmDef.ClearDelay, *m)
 	if alarmDef.ClearDelay > 0 {
 		a.mutex.Unlock()
@@ -182,9 +163,8 @@ func (a *AlarmManager)ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.Al
 		var found bool
 		idx, found = a.IsMatchFound(m.Alarm)
 		if !found {
-			app.Logger.Debug("Alarm not anymore in the active alarms table. AlarmNotification = %v", *m)
 			a.mutex.Unlock()
-			return false
+			return nil, nil
 		}
 	}
 	a.UpdateAlarmFields(a.activeAlarms[idx].AlarmId, m)
@@ -202,8 +182,14 @@ func (a *AlarmManager)ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.Al
 	if a.exceededAlarmHistoryOn && m.Alarm.SpecificProblem == alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD {
 		a.exceededAlarmHistoryOn = false
 	}
-	a.WriteAlarmInfoToPersistentVolume()	
-	return true
+	a.WriteAlarmInfoToPersistentVolume()
+
+	a.mutex.Unlock()
+	if a.postClear && app.Config.GetBool("controls.noma.enabled") {
+		m.PerceivedSeverity = alarm.SeverityCleared
+		return a.PostAlarm(m)
+	}
+	return nil, nil
 }
 
 func timerDelay(delay int) {

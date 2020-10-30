@@ -70,7 +70,21 @@ func main() {
 		SetVersion("1.0.0").
 		SetDescription("This CLI tool provides management interface to SEP alarm system")
 
-	// Get active alarms
+	registerActiveCmd(alarmManagerHost)
+	registerHistoryCmd(alarmManagerHost)
+	registerRaiseCmd(alarmManagerHost)
+	registerClearCmd(alarmManagerHost)
+	registerDefineCmd(alarmManagerHost)
+	registerUndefineCmd(alarmManagerHost)
+	registerConfigureCmd(alarmManagerHost)
+	registerPerfCmd(alarmManagerHost)
+	registerAlertCmd(alertManagerHost)
+
+	// parse command-line arguments
+	commando.Parse(nil)
+}
+
+func registerActiveCmd(alarmManagerHost string) {
 	commando.
 		Register("active").
 		SetShortDescription("Displays the SEP active alarms").
@@ -80,7 +94,9 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlarms(getAlarms(flags, "active"), false)
 		})
+}
 
+func registerHistoryCmd(alarmManagerHost string) {
 	// Get alarm history
 	commando.
 		Register("history").
@@ -91,7 +107,9 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlarms(getAlarms(flags, "history"), true)
 		})
+}
 
+func registerRaiseCmd(alarmManagerHost string) {
 	// Raise an alarm
 	commando.
 		Register("raise").
@@ -109,6 +127,9 @@ func main() {
 			postAlarm(flags, readAlarmParams(flags, false), alarm.AlarmActionRaise, nil)
 		})
 
+}
+
+func registerClearCmd(alarmManagerHost string) {
 	// Clear an alarm
 	commando.
 		Register("clear").
@@ -124,6 +145,9 @@ func main() {
 			postAlarm(flags, readAlarmParams(flags, true), alarm.AlarmActionClear, nil)
 		})
 
+}
+
+func registerConfigureCmd(alarmManagerHost string) {
 	// Configure an alarm manager
 	commando.
 		Register("configure").
@@ -135,6 +159,9 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmConfig(flags)
 		})
+}
+
+func registerDefineCmd(alarmManagerHost string) {
 	// Create alarm definition
 	commando.
 		Register("define").
@@ -150,7 +177,10 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			postAlarmDefinition(flags)
 		})
-		// Delete alarm definition
+}
+
+func registerUndefineCmd(alarmManagerHost string) {
+	// Delete alarm definition
 	commando.
 		Register("undefine").
 		SetShortDescription("Define alarm with given parameters").
@@ -160,7 +190,10 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			deleteAlarmDefinition(flags)
 		})
-		// Conduct performance test for alarm-go
+}
+
+func registerPerfCmd(alarmManagerHost string) {
+	// Conduct performance test for alarm-go
 	commando.
 		Register("perf").
 		SetShortDescription("Conduct performance test with given parameters").
@@ -174,10 +207,12 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			conductperformancetest(flags)
 		})
+}
 
+func registerAlertCmd(alertManagerHost string) {
 	// Get alerts from Prometheus Alert Manager
 	commando.
-		Register("gapam").
+		Register("alerts").
 		SetShortDescription("Get alerts from Prometheus Alert Manager").
 		AddFlag("active", "Active alerts in Prometheus Alert Manager", commando.Bool, true).
 		AddFlag("inhibited", "Inhibited alerts in Prometheus Alert Manager", commando.Bool, true).
@@ -188,9 +223,6 @@ func main() {
 		SetAction(func(args map[string]commando.ArgValue, flags map[string]commando.FlagValue) {
 			displayAlerts(flags)
 		})
-
-	// parse command-line arguments
-	commando.Parse(nil)
 }
 
 func readAlarmParams(flags map[string]commando.FlagValue, clear bool) (a alarm.Alarm) {
@@ -540,7 +572,7 @@ func readPerfAlarmDefinitionFromJson() error {
 	} else {
 		fmt.Printf("ReadPerfAlarmDefinitionFromJson: ioutil.ReadFile failed with error: %v, filename: %s\n", err, filename)
 		fmt.Printf("ReadPerfAlarmDefinitionFromJson: current directory: %s\n", getCurrentDirectory())
-	
+
 		return err
 	}
 	return nil
