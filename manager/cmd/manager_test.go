@@ -50,7 +50,7 @@ var eventChan chan string
 func TestMain(M *testing.M) {
 	alarmManager = NewAlarmManager("localhost:9093", 500, false)
 	alarmManager.alertInterval = 20000
-	go alarmManager.Run(false)
+	go alarmManager.Run(false, 5)
 	time.Sleep(time.Duration(10) * time.Second)
 
 	// Wait until RMR is up-and-running
@@ -488,6 +488,39 @@ func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), activeAlarmsBeforeTest)
 	assert.Equal(t, len(alarmManager.alarmHistory), alarmHistoryBeforeTest+4)
+}
+
+func TestClearExpiredAlarms(t *testing.T) {
+	xapp.Logger.Info("TestClearExpiredAlarms")
+
+	a := alarm.AlarmMessage{
+		Alarm:       alarmer.NewAlarm(8007, alarm.SeverityWarning, "threshold", ""),
+		AlarmAction: alarm.AlarmActionRaise,
+		AlarmTime:   time.Now().UnixNano(),
+	}
+	d := alarm.RICAlarmDefinitions[8007]
+	n := AlarmNotification{a, *d}
+	alarmManager.activeAlarms = make([]AlarmNotification, 0)
+	alarmManager.UpdateActiveAlarmList(&n)
+
+	// Unknown SP
+	a.Alarm.SpecificProblem = 1234
+	assert.False(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
+
+	// TTL is 0
+	d.TimeToLive = 0
+	assert.False(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
+
+	// TTL not expired
+	a.Alarm.SpecificProblem = 8007
+	d.TimeToLive = 2
+	assert.False(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
+
+	// TTL expired, alarm should be cleared
+	time.Sleep(time.Duration(3) * time.Second)
+	assert.Equal(t, len(alarmManager.activeAlarms), 1)
+	assert.True(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
+	assert.Equal(t, len(alarmManager.activeAlarms), 0)
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {

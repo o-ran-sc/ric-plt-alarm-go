@@ -30,6 +30,19 @@ import (
 	"time"
 )
 
+func (a *AlarmManager) InjectRoutes() {
+	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
+	app.Resource.InjectRoute("/ric/v1/alarms/active", a.GetActiveAlarms, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/history", a.GetAlarmHistory, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/config", a.SetAlarmConfig, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms/config", a.GetAlarmConfig, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/define", a.SetAlarmDefinition, "POST")
+	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.DeleteAlarmDefinition, "DELETE")
+	app.Resource.InjectRoute("/ric/v1/alarms/define", a.GetAlarmDefinition, "GET")
+	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
+}
+
 func (a *AlarmManager) respondWithError(w http.ResponseWriter, code int, message string) {
 	a.respondWithJSON(w, code, map[string]string{"error": message})
 }
@@ -97,6 +110,7 @@ func (a *AlarmManager) SetAlarmDefinition(w http.ResponseWriter, r *http.Request
 			ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
 			ricAlarmDefintion.RaiseDelay = alarmDefinition.RaiseDelay
 			ricAlarmDefintion.ClearDelay = alarmDefinition.ClearDelay
+			ricAlarmDefintion.TimeToLive = alarmDefinition.TimeToLive
 			alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
 			app.Logger.Debug("POST - alarm definition added for alarm id %v", alarmDefinition.AlarmId)
 		}
