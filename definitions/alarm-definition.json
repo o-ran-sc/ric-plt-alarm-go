@@ -6,7 +6,8 @@
             "eventType" : "processingError",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         },
         {
             "alarmId" : 8005,
@@ -14,7 +15,8 @@
             "eventType" : "communication",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         },
         {
             "alarmId" : 8006,
@@ -22,7 +24,8 @@
             "eventType" : "communication",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         },
         {
             "alarmId" : 8007,
@@ -30,7 +33,8 @@
             "eventType" : "communication",
             "operationInstructions" : "Not defined",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         },
         {
             "alarmId" : 8008,
@@ -38,7 +42,8 @@
             "eventType" : "equipment",
             "operationInstructions" : "Clear alarms or raise threshold",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         },
         {
             "alarmId" : 8009,
@@ -46,7 +51,8 @@
             "eventType" : "equipment",
             "operationInstructions" : "Clear alarms or raise threshold",
             "raiseDelay" : 0,
-            "clearDelay" : 0
+            "clearDelay" : 0,
+            "timeToLive" : 0
         }
    ]
 }

@@ -50,9 +50,9 @@ export PERF_OBJ_FILE=../testresources/perf-alarm-object.json
 GO111MODULE=on GO_ENABLED=0 GOOS=linux
 
 # setup version tag
-if [ -f container-tag.yaml ]
+if [ -f build/container-tag.yaml ]
 then
-    tag=$(grep "tag:" container-tag.yaml | awk '{print $2}')
+    tag=$(grep "tag:" build/container-tag.yaml | awk '{print $2}')
 else
     tag="no-tag-found"
 fi

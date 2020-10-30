@@ -39,6 +39,42 @@ import (
 	"github.com/spf13/viper"
 )
 
+func (a *AlarmManager) ClearExpiredAlarms(m AlarmNotification, idx int, mLocked bool) bool {
+	d, ok := alarm.RICAlarmDefinitions[m.Alarm.SpecificProblem]
+	if !ok || d.TimeToLive == 0 {
+		return false
+	}
+
+	elapsed := (time.Now().UnixNano() - m.AlarmTime) / 1e9
+	if int(elapsed) >= d.TimeToLive {
+		app.Logger.Info("Alarm (sp=%d id=%d) with TTL=%d expired, clearing ...", m.Alarm.SpecificProblem, m.AlarmId, d.TimeToLive)
+
+		m.AlarmAction = alarm.AlarmActionClear
+		m.AlarmTime = time.Now().UnixNano()
+
+		if !mLocked { // For testing purpose
+			a.mutex.Lock()
+		}
+		a.ProcessClearAlarm(&m, d, idx)
+		return true
+	}
+	return false
+}
+
+func (a *AlarmManager) StartTTLTimer(interval int) {
+	tick := time.Tick(time.Duration(interval) * time.Second)
+	for range tick {
+		a.mutex.Lock()
+		for idx, m := range a.activeAlarms {
+			if a.ClearExpiredAlarms(m, idx, true) {
+				a.mutex.Lock() // ClearExpiredAlarms unlocks the mutex, so re-lock here
+				continue
+			}
+		}
+		a.mutex.Unlock()
+	}
+}
+
 func (a *AlarmManager) StartAlertTimer() {
 	tick := time.Tick(time.Duration(a.alertInterval) * time.Millisecond)
 	for range tick {
@@ -230,7 +266,7 @@ func (a *AlarmManager) GenerateThresholdAlarm(sp int, data string) bool {
 	thresholdMessage := alarm.AlarmMessage{
 		Alarm:       thresholdAlarm,
 		AlarmAction: alarm.AlarmActionRaise,
-		AlarmTime:   (time.Now().UnixNano()),
+		AlarmTime:   time.Now().UnixNano(),
 	}
 	alarmDef := alarm.RICAlarmDefinitions[sp]
 	alarmId := a.GenerateAlarmId()
@@ -375,6 +411,7 @@ func (a *AlarmManager) ReadAlarmDefinitionFromJson() {
 					ricAlarmDefintion.OperationInstructions = alarmDefinition.OperationInstructions
 					ricAlarmDefintion.RaiseDelay = alarmDefinition.RaiseDelay
 					ricAlarmDefintion.ClearDelay = alarmDefinition.ClearDelay
+					ricAlarmDefintion.TimeToLive = alarmDefinition.TimeToLive
 					alarm.RICAlarmDefinitions[alarmDefinition.AlarmId] = ricAlarmDefintion
 				}
 			}
@@ -410,8 +447,10 @@ func (a *AlarmManager) WriteAlarmInfoToPersistentVolume() {
 	alarmpersistentinfo.UniqueAlarmId = a.uniqueAlarmId
 	alarmpersistentinfo.ActiveAlarms = make([]AlarmNotification, len(a.activeAlarms))
 	alarmpersistentinfo.AlarmHistory = make([]AlarmNotification, len(a.alarmHistory))
+
 	copy(alarmpersistentinfo.ActiveAlarms, a.activeAlarms)
 	copy(alarmpersistentinfo.AlarmHistory, a.alarmHistory)
+
 	wdata, err := json.MarshalIndent(alarmpersistentinfo, "", " ")
 	if err != nil {
 		app.Logger.Error("alarmpersistentinfo json marshal error %v", err)
@@ -423,7 +462,7 @@ func (a *AlarmManager) WriteAlarmInfoToPersistentVolume() {
 	}
 }
 
-func (a *AlarmManager) Run(sdlcheck bool) {
+func (a *AlarmManager) Run(sdlcheck bool, ttlInterval int) {
 	app.Logger.SetMdc("alarmManager", fmt.Sprintf("%s:%s", Version, Hash))
 	app.SetReadyCB(func(d interface{}) { a.rmrReady = true }, true)
 	app.Resource.InjectStatusCb(a.StatusCB)
@@ -432,19 +471,12 @@ func (a *AlarmManager) Run(sdlcheck bool) {
 	alarm.RICAlarmDefinitions = make(map[int]*alarm.AlarmDefinition)
 	a.ReadAlarmDefinitionFromJson()
 
-	app.Resource.InjectRoute("/ric/v1/alarms", a.RaiseAlarm, "POST")
-	app.Resource.InjectRoute("/ric/v1/alarms", a.ClearAlarm, "DELETE")
-	app.Resource.InjectRoute("/ric/v1/alarms/active", a.GetActiveAlarms, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarms/history", a.GetAlarmHistory, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarms/config", a.SetAlarmConfig, "POST")
-	app.Resource.InjectRoute("/ric/v1/alarms/config", a.GetAlarmConfig, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarms/define", a.SetAlarmDefinition, "POST")
-	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.DeleteAlarmDefinition, "DELETE")
-	app.Resource.InjectRoute("/ric/v1/alarms/define", a.GetAlarmDefinition, "GET")
-	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
+	a.InjectRoutes()
 
 	// Start background timer for re-raising alerts
 	go a.StartAlertTimer()
+	go a.StartTTLTimer(ttlInterval)
+
 	a.alarmClient, _ = alarm.InitAlarm("SEP", "ALARMMANAGER")
 
 	a.ReadAlarmInfoFromPersistentVolume()
@@ -481,5 +513,5 @@ func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmMa
 
 // Main function
 func main() {
-	NewAlarmManager("", 0, true).Run(true)
+	NewAlarmManager("", 0, true).Run(true, 10)
 }
