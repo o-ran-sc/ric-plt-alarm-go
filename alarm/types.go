@@ -23,6 +23,8 @@ package alarm
 import (
 	"sync"
 	"unsafe"
+	"os"
+	"fmt"
 )
 
 import "C"
@@ -110,7 +112,8 @@ type AlarmDefinition struct {
 var RICAlarmDefinitions map[int]*AlarmDefinition
 var RICPerfAlarmObjects map[int]*Alarm
 
-const (
-	ALARM_MANAGER_HTTP_URL string = "http://service-ricplt-alarmmanager-http.ricplt:8080"
-	ALARM_MANAGER_RMR_URL  string = "service-ricplt-alarmmanager-rmr.ricplt:4560"
+var (
+	namespace = os.Getenv("PLT_NAMESPACE")
+	ALARM_MANAGER_HTTP_URL string = fmt.Sprintf("http://service-%s-alarmmanager-http.%s:8080", namespace, namespace) 
+	ALARM_MANAGER_RMR_URL  string = fmt.Sprintf("service-%s-alarmmanager-rmr.%s:4560", namespace, namespace)
 )

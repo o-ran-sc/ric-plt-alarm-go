@@ -23,7 +23,12 @@
 #	Date:		10 March 2020
 #
 export RMR_SEED_RT=/cfg/uta_rtg.rt
-export RMR_SRC_ID="service-ricplt-alarmmanager-rmr.ricplt"
+namespace=$(env | grep PLT_NAMESPACE | grep -oe '[^=]*$')
+if [ -z "$namespace" ]
+then
+    namespace="ricplt"
+fi
+export RMR_SRC_ID="service-"$namespace"-alarmmanager-rmr."$namespace
 export DEF_FILE=./alarm-definition.json
 export PERF_DEF_FILE=./perf-alarm-definition.json
 export PERF_OBJ_FILE=./perf-alarm-object.json
