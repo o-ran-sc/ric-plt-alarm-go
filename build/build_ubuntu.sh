@@ -17,7 +17,7 @@
 #   limitations under the License.
 #==================================================================================
 
-set -eux
+#set -eux
 
 echo "--> build_ubuntu.sh starts"
 
@@ -43,7 +43,7 @@ export CFG_FILE=../config/config-file.json
 export RMR_SEED_RT=../config/uta_rtg.rt
 
 # xApp stuff
-export DEF_FILE=../definitions/alarm-definition.json
+export DEF_FILE=../../definitions/alarm-definition.json
 export PERF_DEF_FILE=../testresources/perf-alarm-definition.json
 export PERF_OBJ_FILE=../testresources/perf-alarm-object.json
 
@@ -61,7 +61,6 @@ hash=$(git rev-parse --short HEAD || true)
 
 ROOT_DIR=$PWD
 
-
 # compile the CLI
 cd ${ROOT_DIR}/cli && go build -a -installsuffix cgo alarm-cli.go
 
@@ -71,7 +70,16 @@ cd ${ROOT_DIR}/manager && go build -a -installsuffix cgo -ldflags "-X main.Versi
 # Execute UT and measure coverage for the Alarm Library
 cd ${ROOT_DIR}/alarm && go test . -v -coverprofile cover.out
 
+# Copy alarm/cover.out to alarm-go/cover.out
+cd ${ROOT_DIR} && cat alarm/cover.out > coverage.out
+
 # And for the Alarm Manager
-cd ${ROOT_DIR}/manager && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./manager_test && ./manager_test
+#cd ${ROOT_DIR}/manager && go test -v -p 1 -coverprofile cover.out ./cmd/ -c -o ./manager_test && ./manager_test
+cd ${ROOT_DIR}/manager && GO111MODULE=on RMR_SEED_RT=../../config/uta_rtg.rt CFG_FILE=../../config/config-file.json go test -v -p 1 -cover -coverprofile=cover.out ./...
+
+# Remove first line of the manager/cover.out and append to alarm-go/coverity.out
+cd ${ROOT_DIR} && sed '1d' manager/cover.out >> coverage.out
+
+cd ${ROOT_DIR} && GO111MODULE=on go tool cover -html=coverage.out -o coverage.html
 
 echo "--> build_ubuntu.sh ends"

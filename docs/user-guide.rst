@@ -273,9 +273,9 @@ Get alerts from Prometheus Alert Manager:
 
  .. code-block:: none
 
-  Syntax: cli/alarm-cli gapam --active --inhibited --silenced --unprocessed --host [--port]
+  Syntax: cli/alarm-cli alerts --active --inhibited --silenced --unprocessed --host [--port]
 
-  Example: cli/alarm-cli gapam --active true --inhibited true --silenced true --unprocessed true --host 10.102.36.121 --port 9093
+  Example: cli/alarm-cli alerts --active true --inhibited true --silenced true --unprocessed true --host 10.102.36.121 --port 9093
 
 
 REST interface usage guide

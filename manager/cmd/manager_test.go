@@ -65,6 +65,17 @@ func TestMain(M *testing.M) {
 
 	os.Exit(M.Run())
 }
+/*This test case fails sometimes. Should be checked and fixed later
+
+=== RUN   TestGetPreDefinedAlarmDefinitions
+{"ts":1604561798923,"crit":"INFO","id":"cmd.test","mdc":{"alarmManager":":","time":"2020-11-05T07:36:38"},"msg":"TestGetPreDefinedAlarmDefinitions"}
+{"ts":1604561798923,"crit":"ERROR","id":"cmd.test","mdc":{"alarmManager":":","time":"2020-11-05T07:36:38"},"msg":"Requested alarm id not found 8004"}
+{"ts":1604561798924,"crit":"INFO","id":"cmd.test","mdc":{"alarmManager":":","time":"2020-11-05T07:36:38"},"msg":"alarm definition = {0    0 0 0}"}
+--- FAIL: TestGetPreDefinedAlarmDefinitions (0.00s)
+    manager_test.go:615: Expected response code 200. Got 400
+    manager_test.go:81: Incorrect alarm definition
+*/
+
 
 func TestGetPreDefinedAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("TestGetPreDefinedAlarmDefinitions")
@@ -353,7 +364,7 @@ func TestGetPrometheusAlerts(t *testing.T) {
 
 	commandReady := make(chan bool, 1)
 	command := "cli/alarm-cli"
-	args := []string{"gapam", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
+	args := []string{"alerts", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
 	ExecCLICommand(commandReady, command, args...)
 	<-commandReady
 
