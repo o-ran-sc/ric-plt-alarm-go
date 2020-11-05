@@ -353,7 +353,7 @@ func TestGetPrometheusAlerts(t *testing.T) {
 
 	commandReady := make(chan bool, 1)
 	command := "cli/alarm-cli"
-	args := []string{"gapam", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
+	args := []string{"alerts", "--active", "true", "--inhibited", "true", "--silenced", "--unprocessed", "true", "true", "--host", "localhost", "--port", "9093", "flushall"}
 	ExecCLICommand(commandReady, command, args...)
 	<-commandReady
 
