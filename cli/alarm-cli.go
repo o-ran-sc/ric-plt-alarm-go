@@ -18,7 +18,6 @@ import (
 	"github.com/prometheus/alertmanager/api/v2/client"
 	"github.com/prometheus/alertmanager/api/v2/client/alert"
 	"github.com/prometheus/alertmanager/api/v2/models"
-	"github.com/spf13/viper"
 	"github.com/thatisuday/commando"
 )
 
@@ -649,11 +648,38 @@ func raiseClearAlarmOverPeriod(alarmobject *alarm.Alarm, flags map[string]comman
 	}
 }
 
+func dispalyAlertAnnotations(t table.Writer, gettableAlert *models.GettableAlert) {
+	var annotationmap map[string]string
+	annotationmap = make(map[string]string)
+	for key, item := range gettableAlert.Annotations {
+		annotationmap[key] = item
+	}
+	t.AppendRow([]interface{}{"alarm_id", annotationmap["alarm_id"]})
+	t.AppendRow([]interface{}{"specific_problem", annotationmap["specific_problem"]})
+	t.AppendRow([]interface{}{"timestamp", annotationmap["timestamp"]})
+	t.AppendRow([]interface{}{"event_type", annotationmap["event_type"]})
+	t.AppendRow([]interface{}{"description", annotationmap["description"]})
+	t.AppendRow([]interface{}{"additional_info", annotationmap["additional_info"]})
+	t.AppendRow([]interface{}{"identifying_info", annotationmap["identifying_info"]})
+	t.AppendRow([]interface{}{"instructions", annotationmap["instructions"]})
+}
+
+func displayAlertLabels(t table.Writer, gettableAlert *models.GettableAlert) {
+	var labelmap map[string]string
+	labelmap = make(map[string]string)
+	for key, item := range gettableAlert.Alert.Labels {
+		labelmap[key] = item
+	}
+	t.AppendRow([]interface{}{"alertname", labelmap["alertname"]})
+	t.AppendRow([]interface{}{"status", labelmap["status"]})
+	t.AppendRow([]interface{}{"severity", labelmap["severity"]})
+	t.AppendRow([]interface{}{"system_name", labelmap["system_name"]})
+	t.AppendRow([]interface{}{"service", labelmap["service"]})
+}
+
 func displaySingleAlert(t table.Writer, gettableAlert *models.GettableAlert) {
 	t.AppendRow([]interface{}{"------------------------------------"})
-	for key, item := range gettableAlert.Annotations {
-		t.AppendRow([]interface{}{key, item})
-	}
+	dispalyAlertAnnotations(t, gettableAlert)
 	if gettableAlert.EndsAt != nil {
 		t.AppendRow([]interface{}{"EndsAt", *gettableAlert.EndsAt})
 	}
@@ -677,9 +703,7 @@ func displaySingleAlert(t table.Writer, gettableAlert *models.GettableAlert) {
 		t.AppendRow([]interface{}{"UpdatedAt", *gettableAlert.UpdatedAt})
 	}
 	t.AppendRow([]interface{}{"GeneratorURL", gettableAlert.Alert.GeneratorURL})
-	for key, item := range gettableAlert.Alert.Labels {
-		t.AppendRow([]interface{}{key, item})
-	}
+	displayAlertLabels(t, gettableAlert)
 }
 
 func displayAlerts(flags map[string]commando.FlagValue) {
@@ -715,23 +739,18 @@ func getAlerts(flags map[string]commando.FlagValue) (*alert.GetAlertsOK, error) 
 	unprocessed, _ := flags["unprocessed"].GetBool()
 	amHost, _ := flags["host"].GetString()
 	amPort, _ := flags["port"].GetString()
-	var amAddress string
-	if amHost == "" {
-		amAddress = viper.GetString("controls.promAlertManager.address")
-	} else {
-		amAddress = amHost + ":" + amPort
-	}
+	amAddress := amHost + ":" + amPort
+	amBaseUrl := "api/v2"
+	amSchemes := []string{"http"}
 
 	alertParams := alert.NewGetAlertsParams()
 	alertParams.Active = &active
 	alertParams.Inhibited = &inhibited
 	alertParams.Silenced = &silenced
 	alertParams.Unprocessed = &unprocessed
-	amBaseUrl := viper.GetString("controls.promAlertManager.baseUrl")
-	amSchemes := []string{viper.GetString("controls.promAlertManager.schemes")}
 	resp, err := newAlertManagerClient(amAddress, amBaseUrl, amSchemes).Alert.GetAlerts(alertParams)
 	if err != nil {
-		err = fmt.Errorf("GetAlerts from '%s%s' failed with error: %v", amAddress, amBaseUrl, err)
+		err = fmt.Errorf("GetAlerts from amAddress = %s with amBaseUrl = %s failed with error: %v", amAddress, amBaseUrl, err)
 	}
 	return resp, err
 }

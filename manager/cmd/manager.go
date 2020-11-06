@@ -81,7 +81,7 @@ func (a *AlarmManager) StartAlertTimer() {
 		a.mutex.Lock()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
-			a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
+			a.PostAlert(a.GenerateAlertLabels(m.AlarmId, m.Alarm, AlertStatusActive, m.AlarmTime))
 		}
 		a.mutex.Unlock()
 	}
@@ -185,7 +185,7 @@ func (a *AlarmManager) ProcessRaiseAlarm(m *AlarmNotification, alarmDef *alarm.A
 	if app.Config.GetBool("controls.noma.enabled") {
 		return a.PostAlarm(m)
 	}
-	return a.PostAlert(a.GenerateAlertLabels(m.Alarm, AlertStatusActive, m.AlarmTime))
+	return a.PostAlert(a.GenerateAlertLabels(m.AlarmId, m.Alarm, AlertStatusActive, m.AlarmTime))
 }
 
 func (a *AlarmManager) ProcessClearAlarm(m *AlarmNotification, alarmDef *alarm.AlarmDefinition, idx int) (*alert.PostAlertsOK, error) {
@@ -321,7 +321,7 @@ func (a *AlarmManager) PostAlarm(m *AlarmNotification) (*alert.PostAlertsOK, err
 	return nil, err
 }
 
-func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertStatus, alarmTime int64) (models.LabelSet, models.LabelSet) {
+func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, status AlertStatus, alarmTime int64) (models.LabelSet, models.LabelSet) {
 	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
 		"status":      string(status),
@@ -331,7 +331,7 @@ func (a *AlarmManager) GenerateAlertLabels(newAlarm alarm.Alarm, status AlertSta
 		"system_name": "RIC",
 	}
 	amAnnotations := models.LabelSet{
-		"alarm_id":         fmt.Sprintf("%d", alarmDef.AlarmId),
+		"alarm_id":         fmt.Sprintf("%d", alarmId),
 		"specific_problem": fmt.Sprintf("%d", newAlarm.SpecificProblem),
 		"event_type":       alarmDef.EventType,
 		"identifying_info": newAlarm.IdentifyingInfo,
