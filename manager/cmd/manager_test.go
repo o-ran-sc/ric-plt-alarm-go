@@ -221,6 +221,34 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
+
+	var activeAlarms []AlarmNotification
+	activeAlarms = make([]AlarmNotification, 1)
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/active", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc := http.HandlerFunc(alarmManager.GetActiveAlarms)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Decode the json output from handler
+	json.NewDecoder(response.Body).Decode(activeAlarms)
+	if len(activeAlarms) != 1 {
+		t.Errorf("Incorrect alarm alarm count")
+	}
+
+	var alarmHistory []AlarmNotification
+	alarmHistory = make([]AlarmNotification, 1)
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/history", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmHistory)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Decode the json output from handler
+	json.NewDecoder(response.Body).Decode(alarmHistory)
+	if len(alarmHistory) != 1 {
+		t.Errorf("Incorrect alarm history count")
+	}
 }
 
 func TestAlarmClearedSucess(t *testing.T) {
@@ -523,6 +551,60 @@ func TestClearExpiredAlarms(t *testing.T) {
 	assert.Equal(t, len(alarmManager.activeAlarms), 0)
 }
 
+func TestSetAlarmConfig(t *testing.T) {
+	xapp.Logger.Info("TestSetAlarmConfig")
+
+	var setAlarmConfig alarm.AlarmConfigParams
+	setAlarmConfig.MaxActiveAlarms = 500
+	setAlarmConfig.MaxAlarmHistory = 2000
+
+	pbodyEn, _ := json.Marshal(setAlarmConfig)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/config", bytes.NewBuffer(pbodyEn))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmConfig)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	var getAlarmConfig alarm.AlarmConfigParams
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/config", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmConfig)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Decode the json output from handler
+	json.NewDecoder(response.Body).Decode(&getAlarmConfig)
+	if getAlarmConfig.MaxActiveAlarms != 500 || getAlarmConfig.MaxAlarmHistory != 2000 {
+		t.Errorf("Incorrect alarm thresholds")
+	}
+
+	// Revert ot default
+	setAlarmConfig.MaxActiveAlarms = 5000
+	setAlarmConfig.MaxAlarmHistory = 20000
+
+	pbodyEn, _ = json.Marshal(setAlarmConfig)
+	req, _ = http.NewRequest("POST", "/ric/v1/alarms/config", bytes.NewBuffer(pbodyEn))
+	handleFunc = http.HandlerFunc(alarmManager.SetAlarmConfig)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	req, _ = http.NewRequest("GET", "/ric/v1/alarms/config", nil)
+	req = mux.SetURLVars(req, nil)
+	handleFunc = http.HandlerFunc(alarmManager.GetAlarmConfig)
+	response = executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	// Decode the json output from handler
+	json.NewDecoder(response.Body).Decode(&getAlarmConfig)
+	if getAlarmConfig.MaxActiveAlarms != 5000 || getAlarmConfig.MaxAlarmHistory != 20000 {
+		t.Errorf("Incorrect alarm thresholds")
+	}
+}
+
+func TestConfigChangeCB(t *testing.T) {
+	xapp.Logger.Info("TestConfigChangeCB")
+	alarmManager.ConfigChangeCB("AlarmManager")
+}
+
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
@@ -641,3 +723,4 @@ func readJSONFromFile(filename string) ([]byte, error) {
 	}
 	return file, nil
 }
+
