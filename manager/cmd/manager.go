@@ -378,7 +378,15 @@ func (a *AlarmManager) StatusCB() bool {
 func (a *AlarmManager) ConfigChangeCB(configparam string) {
 
 	a.maxActiveAlarms = app.Config.GetInt("controls.maxActiveAlarms")
+	if a.maxActiveAlarms == 0 {
+		a.maxActiveAlarms = 5000
+	}
+
 	a.maxAlarmHistory = app.Config.GetInt("controls.maxAlarmHistory")
+	if a.maxAlarmHistory == 0 {
+		a.maxAlarmHistory = 20000
+	}
+	
 	a.alertInterval = viper.GetInt("controls.promAlertManager.alertInterval")
 	a.amHost = viper.GetString("controls.promAlertManager.address")
 
@@ -493,6 +501,16 @@ func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmMa
 		amHost = viper.GetString("controls.promAlertManager.address")
 	}
 
+	maxActiveAlarms := app.Config.GetInt("controls.maxActiveAlarms")
+	if maxActiveAlarms == 0 {
+		maxActiveAlarms = 5000
+	}
+
+	maxAlarmHistory := app.Config.GetInt("controls.maxAlarmHistory")
+	if maxAlarmHistory == 0 {
+		maxAlarmHistory = 20000
+	}
+
 	return &AlarmManager{
 		rmrReady:               false,
 		postClear:              clearAlarm,
@@ -503,8 +521,8 @@ func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmMa
 		activeAlarms:           make([]AlarmNotification, 0),
 		alarmHistory:           make([]AlarmNotification, 0),
 		uniqueAlarmId:          0,
-		maxActiveAlarms:        app.Config.GetInt("controls.maxActiveAlarms"),
-		maxAlarmHistory:        app.Config.GetInt("controls.maxAlarmHistory"),
+		maxActiveAlarms:        maxActiveAlarms,
+		maxAlarmHistory:        maxAlarmHistory,
 		exceededActiveAlarmOn:  false,
 		exceededAlarmHistoryOn: false,
 		alarmInfoPvFile:        app.Config.GetString("controls.alarmInfoPvFile"),
