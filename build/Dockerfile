@@ -32,7 +32,7 @@ WORKDIR "/go/src/am"
 RUN ./build/build_ubuntu.sh
 
 # Final, executable and deployable container
-FROM ubuntu:18.04
+FROM ubuntu:18.04 as alarm-manager
 
 COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
