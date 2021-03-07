@@ -41,6 +41,10 @@ func (a *AlarmManager) InjectRoutes() {
 	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.DeleteAlarmDefinition, "DELETE")
 	app.Resource.InjectRoute("/ric/v1/alarms/define", a.GetAlarmDefinition, "GET")
 	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
+
+	app.Resource.InjectRoute("/ric/v1/symptomdata", a.SymptomDataHandler, "GET")
+
+	a.utils = NewUtils()
 }
 
 func (a *AlarmManager) respondWithError(w http.ResponseWriter, code int, message string) {
@@ -238,4 +242,50 @@ func (a *AlarmManager) GetAlarmConfig(w http.ResponseWriter, r *http.Request) {
 
 	a.respondWithJSON(w, http.StatusOK, m)
 	return
+}
+
+func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request) {
+	baseDir := "/tmp/symptomdata/"
+	if err := a.utils.CreateDir(baseDir); err != nil {
+		a.utils.SendSymptomDataError(w, r, "CreateDir failed: "+err.Error())
+		return
+	}
+
+	if b, err := json.Marshal(a.activeAlarms); err == nil {
+		if err := a.utils.WriteToFile(baseDir+"active_alarms.json", string(b)); err != nil {
+			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+			return
+		}
+	}
+
+	if b, err := json.Marshal(a.alarmHistory); err == nil {
+		if err := a.utils.WriteToFile(baseDir+"alarm_history.json", string(b)); err != nil {
+			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+			return
+		}
+	}
+
+	var ac alarm.AlarmConfigParams
+	ac.MaxActiveAlarms = a.maxActiveAlarms
+	ac.MaxAlarmHistory = a.maxAlarmHistory
+
+	if b, err := json.Marshal(ac); err == nil {
+		if err := a.utils.WriteToFile(baseDir+"alarm_config.json", string(b)); err != nil {
+			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+			return
+		}
+	}
+
+	var ad RicAlarmDefinitions
+	for _, alarmDefinition := range alarm.RICAlarmDefinitions {
+		ad.AlarmDefinitions = append(ad.AlarmDefinitions, alarmDefinition)
+	}
+	if b, err := json.Marshal(ad); err == nil {
+		if err := a.utils.WriteToFile(baseDir+"alarm_defs.json", string(b)); err != nil {
+			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+			return
+		}
+	}
+
+	a.utils.SendSymptomDataFile(w, r, baseDir, "symptomdata.zip")
 }

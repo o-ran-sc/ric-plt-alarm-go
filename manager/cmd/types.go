@@ -43,6 +43,7 @@ type AlarmManager struct {
 	exceededActiveAlarmOn  bool
 	exceededAlarmHistoryOn bool
 	alarmInfoPvFile        string
+	utils                  *Utils
 }
 
 type AlarmNotification struct {

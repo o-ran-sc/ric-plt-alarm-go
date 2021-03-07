@@ -1,6 +1,6 @@
 {
     "local": {
-        "host": ":8080"
+        "host": ":8099"
     },
     "logger": {
         "level": 4

@@ -386,7 +386,7 @@ func (a *AlarmManager) ConfigChangeCB(configparam string) {
 	if a.maxAlarmHistory == 0 {
 		a.maxAlarmHistory = 20000
 	}
-	
+
 	a.alertInterval = viper.GetInt("controls.promAlertManager.alertInterval")
 	a.amHost = viper.GetString("controls.promAlertManager.address")
 

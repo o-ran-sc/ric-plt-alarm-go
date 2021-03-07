@@ -723,4 +723,3 @@ func readJSONFromFile(filename string) ([]byte, error) {
 	}
 	return file, nil
 }
-
