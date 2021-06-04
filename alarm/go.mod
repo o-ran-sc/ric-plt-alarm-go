@@ -6,7 +6,7 @@ replace gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm => ../alarm
 
 replace gerrit.o-ran-sc.org/r/ric-plt/sdlgo => gerrit.o-ran-sc.org/r/ric-plt/sdlgo.git v0.5.2
 
-replace gerrit.o-ran-sc.org/r/com/golog => gerrit.o-ran-sc.org/r/com/golog.git v0.0.1
+replace gerrit.o-ran-sc.org/r/com/golog => gerrit.o-ran-sc.org/r/com/golog.git v0.0.2
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
