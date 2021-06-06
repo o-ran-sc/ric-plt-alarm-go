@@ -22,12 +22,13 @@ package main
 
 import (
 	"encoding/json"
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
-	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"time"
+
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
+	"github.com/gorilla/mux"
 )
 
 func (a *AlarmManager) InjectRoutes() {
@@ -43,8 +44,6 @@ func (a *AlarmManager) InjectRoutes() {
 	app.Resource.InjectRoute("/ric/v1/alarms/define/{alarmId}", a.GetAlarmDefinition, "GET")
 
 	app.Resource.InjectRoute("/ric/v1/symptomdata", a.SymptomDataHandler, "GET")
-
-	a.utils = NewUtils()
 }
 
 func (a *AlarmManager) respondWithError(w http.ResponseWriter, code int, message string) {
@@ -246,21 +245,21 @@ func (a *AlarmManager) GetAlarmConfig(w http.ResponseWriter, r *http.Request) {
 
 func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request) {
 	baseDir := "/tmp/symptomdata/"
-	if err := a.utils.CreateDir(baseDir); err != nil {
-		a.utils.SendSymptomDataError(w, r, "CreateDir failed: "+err.Error())
+	if err := app.Util.CreateDir(baseDir); err != nil {
+		app.Resource.SendSymptomDataError(w, r, "CreateDir failed: "+err.Error())
 		return
 	}
 
 	if b, err := json.Marshal(a.activeAlarms); err == nil {
-		if err := a.utils.WriteToFile(baseDir+"active_alarms.json", string(b)); err != nil {
-			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+		if err := app.Util.WriteToFile(baseDir+"active_alarms.json", string(b)); err != nil {
+			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
 		}
 	}
 
 	if b, err := json.Marshal(a.alarmHistory); err == nil {
-		if err := a.utils.WriteToFile(baseDir+"alarm_history.json", string(b)); err != nil {
-			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+		if err := app.Util.WriteToFile(baseDir+"alarm_history.json", string(b)); err != nil {
+			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
 		}
 	}
@@ -270,8 +269,8 @@ func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request
 	ac.MaxAlarmHistory = a.maxAlarmHistory
 
 	if b, err := json.Marshal(ac); err == nil {
-		if err := a.utils.WriteToFile(baseDir+"alarm_config.json", string(b)); err != nil {
-			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+		if err := app.Util.WriteToFile(baseDir+"alarm_config.json", string(b)); err != nil {
+			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
 		}
 	}
@@ -281,11 +280,11 @@ func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request
 		ad.AlarmDefinitions = append(ad.AlarmDefinitions, alarmDefinition)
 	}
 	if b, err := json.Marshal(ad); err == nil {
-		if err := a.utils.WriteToFile(baseDir+"alarm_defs.json", string(b)); err != nil {
-			a.utils.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+		if err := app.Util.WriteToFile(baseDir+"alarm_defs.json", string(b)); err != nil {
+			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
 		}
 	}
 
-	a.utils.SendSymptomDataFile(w, r, baseDir, "symptomdata.zip")
+	app.Resource.SendSymptomDataFile(w, r, baseDir, "symptomdata.zip")
 }

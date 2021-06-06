@@ -23,10 +23,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 )
@@ -80,6 +81,20 @@ func TestClearAlarmRESTInterface(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(alarmManager.ClearAlarm)
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, true, rr != nil)
+	assert.Equal(t, rr.Code, http.StatusOK)
+}
+
+func TestSymptomDataHandler(t *testing.T) {
+	req, err := http.NewRequest("POST", "/ric/v1/symptomdata", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(alarmManager.SymptomDataHandler)
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, true, rr != nil)
