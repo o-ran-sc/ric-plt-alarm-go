@@ -24,11 +24,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
-	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
-	"github.com/gorilla/mux"
-	"github.com/prometheus/alertmanager/api/v2/models"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net"
@@ -40,6 +35,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/alertmanager/api/v2/models"
+	"github.com/stretchr/testify/assert"
 )
 
 var alarmManager *AlarmManager
@@ -282,8 +283,11 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 
-	time.Sleep(time.Duration(2) * time.Second)
-	VerifyAlarm(t, a, 2)
+	time.Sleep(time.Duration(5) * time.Second)
+
+	xapp.Logger.Info("VerifyAlarm: %d %+v", len(alarmManager.activeAlarms), alarmManager.activeAlarms)
+	VerifyAlarm(t, a, 1)
+	xapp.Logger.Info("VerifyAlarm: %d %+v", len(alarmManager.activeAlarms), alarmManager.activeAlarms)
 	VerifyAlarm(t, b, 2)
 }
 
