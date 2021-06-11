@@ -16,6 +16,23 @@
       "message": "For review SDL version bump to v0.7.0.",
       "revId": "5a61007c901669a23ccfe4d2f2040f99f92f8e6e",
       "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3c00a417_c27fa9f5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2021-06-11T10:09:16Z",
+      "side": 1,
+      "message": "Forgot to say earlier, please merge also the change if it looks okay for you guys.",
+      "revId": "5a61007c901669a23ccfe4d2f2040f99f92f8e6e",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
     }
   ]
 }
