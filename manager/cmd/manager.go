@@ -371,12 +371,10 @@ func (a *AlarmManager) StatusCB() bool {
 	if !a.rmrReady {
 		app.Logger.Info("RMR not ready yet!")
 	}
-
 	return a.rmrReady
 }
 
 func (a *AlarmManager) ConfigChangeCB(configparam string) {
-
 	a.maxActiveAlarms = app.Config.GetInt("controls.maxActiveAlarms")
 	if a.maxActiveAlarms == 0 {
 		a.maxActiveAlarms = 5000

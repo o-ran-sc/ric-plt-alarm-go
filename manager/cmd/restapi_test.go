@@ -28,7 +28,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 )
 
@@ -100,3 +99,5 @@ func TestSymptomDataHandler(t *testing.T) {
 	assert.Equal(t, true, rr != nil)
 	assert.Equal(t, rr.Code, http.StatusOK)
 }
+
+

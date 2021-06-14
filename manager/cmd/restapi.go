@@ -203,6 +203,8 @@ func (a *AlarmManager) doAction(w http.ResponseWriter, r *http.Request, isRaiseA
 	return err
 }
 
+// HandleViaRmr is defined but not used as of now 
+/*
 func (a *AlarmManager) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
 	alarmClient, err := alarm.InitAlarm(d.ManagedObjectId, d.ApplicationId)
 	if err != nil {
@@ -218,7 +220,7 @@ func (a *AlarmManager) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
 	}
 
 	return nil
-}
+}*/
 
 func (a *AlarmManager) SetAlarmConfig(w http.ResponseWriter, r *http.Request) {
 	var m alarm.AlarmConfigParams

@@ -140,7 +140,56 @@ func TestSetAlarmDefinitions(t *testing.T) {
 	response := executeRequest(req, handleFunc)
 	status := checkResponseCode(t, http.StatusOK, response.Code)
 	xapp.Logger.Info("status = %v", status)
+}
 
+
+func TestSetAlarmConfigDecodeError(t *testing.T) {
+        xapp.Logger.Info("TestSetAlarmConfigDecodeError")
+
+	var jsonStr = []byte(`{"test":"Invalid Alarm Data", "test1" 123}`)
+        req, _ := http.NewRequest("POST", "/ric/v1/alarms", bytes.NewBuffer(jsonStr))
+        handleFunc := http.HandlerFunc(alarmManager.SetAlarmConfig)
+        response := executeRequest(req, handleFunc)
+        status := checkResponseCode(t,http.StatusOK,response.Code)
+        xapp.Logger.Info("status = %v", status)
+}
+
+func TestSetAlarmDefinitionDecodeError(t *testing.T) {
+        xapp.Logger.Info("TestSetAlarmDefinitionDecodeError")
+
+        var jsonStr = []byte(`{"test":"Invalid Alarm Data", "test1" 123}`)
+        req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(jsonStr))
+        handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+        response := executeRequest(req, handleFunc)
+        status := checkResponseCode(t,http.StatusBadRequest,response.Code)
+        xapp.Logger.Info("status = %v", status)
+}
+
+func TestRaiseAlarmEmptyBody(t *testing.T) {
+        xapp.Logger.Info("TestRaiseAlarmEmptyBody")
+        req, _ := http.NewRequest("POST", "/ric/v1/alarms", nil)
+        handleFunc := http.HandlerFunc(alarmManager.RaiseAlarm)
+        response := executeRequest(req, handleFunc)
+        status := checkResponseCode(t,http.StatusOK,response.Code)
+        xapp.Logger.Info("status = %v", status)
+}
+
+func TestSetAlarmDefinitionsEmptyBody(t *testing.T) {
+        xapp.Logger.Info("TestSetAlarmDefinitionsEmptyBody")
+        req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", nil)
+        handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+        response := executeRequest(req, handleFunc)
+        status := checkResponseCode(t,http.StatusBadRequest,response.Code)
+        xapp.Logger.Info("status = %v", status)
+}
+
+func TestClearAlarmEmptyBody(t *testing.T) {
+        xapp.Logger.Info("TestClearAlarmEmptyBody")
+        req, _ := http.NewRequest("DELETE", "/ric/v1/alarms", nil)
+        handleFunc := http.HandlerFunc(alarmManager.ClearAlarm)
+        response := executeRequest(req, handleFunc)
+        status := checkResponseCode(t,http.StatusOK,response.Code)
+        xapp.Logger.Info("status = %v", status)
 }
 
 func TestGetAlarmDefinitions(t *testing.T) {
@@ -609,6 +658,60 @@ func TestConfigChangeCB(t *testing.T) {
 	alarmManager.ConfigChangeCB("AlarmManager")
 }
 
+func TestPersistentStorage(t *testing.T) {
+    xapp.Logger.Info("TestPersistentStorage")
+    alarmManager.alarmInfoPvFile = "../../definitions/sample.json"
+    alarmManager.ReadAlarmInfoFromPersistentVolume()
+}
+
+func TestReadAlarmDefinitionFromJsonWrongFilename(t *testing.T) {
+  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonWrongFilename")
+    os.Setenv("DEF_FILE","test.json")
+    alarmManager.ReadAlarmDefinitionFromJson()
+  // correct the filename
+}
+
+func TestReadAlarmDefinitionFromJsonInvalidFilename(t *testing.T) {
+  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonInvalidFilename")
+    os.Setenv("DEF_FILE","../../definitions/test.json")
+    alarmManager.ReadAlarmDefinitionFromJson()
+  // correct the filename
+}
+
+func TestPostAlarm(t *testing.T) {
+        xapp.Logger.Info("TestPostAlarm")
+        var activeAlarms []AlarmNotification
+        activeAlarms = make([]AlarmNotification, 1)
+        alarmManager.PostAlarm(&activeAlarms[0])
+}
+
+func TestPostAlarm1(t *testing.T) {
+        xapp.Logger.Info("TestPostAlarm")
+        var activeAlarms []AlarmNotification
+        activeAlarms = make([]AlarmNotification, 2)
+        alarmManager.PostAlarm(&activeAlarms[0])
+}
+
+func TestNewAlarmManagerOther(t *testing.T){
+    NewAlarmManager("", 0, true)
+}
+
+func TestStatusCallbackFailure(t *testing.T) {
+        xapp.Logger.Info("TestStatusCallbackFailure")
+	alarmManager.rmrReady = false 
+        assert.Equal(t, false, alarmManager.StatusCB())
+}
+
+func TestConfigChangeCBFailure(t *testing.T) {
+        xapp.Logger.Info("TestConfigChangeCBFailure")
+	alarmManager.maxActiveAlarms = 0
+	alarmManager.maxAlarmHistory = 0
+	alarmManager.ConfigChangeCB("AlarmManager")
+}
+
+
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
 
@@ -727,3 +830,5 @@ func readJSONFromFile(filename string) ([]byte, error) {
 	}
 	return file, nil
 }
+
+
