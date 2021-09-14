@@ -71,69 +71,46 @@ func TestGetPreDefinedAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("TestGetPreDefinedAlarmDefinitions")
 	var alarmDefinition alarm.AlarmDefinition
 	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars := map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response := executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusOK, response.Code)
 	json.NewDecoder(response.Body).Decode(&alarmDefinition)
 	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
-	if alarmDefinition.AlarmId != alarm.RIC_RT_DISTRIBUTION_FAILED || alarmDefinition.AlarmText != "RIC ROUTING TABLE DISTRIBUTION FAILED" {
+    if alarmDefinition.AlarmId != alarm.E2_CONNECTION_PROBLEM || alarmDefinition.AlarmText != "E2 CONNECTION PROBLEM" {
 		t.Errorf("Incorrect alarm definition")
 	}
 }
 
 func TestSetAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("TestSetAlarmDefinitions")
-	var alarm8004Definition alarm.AlarmDefinition
-	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
-	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
-	alarm8004Definition.EventType = "Processing error"
-	alarm8004Definition.OperationInstructions = "Not defined"
-	alarm8004Definition.RaiseDelay = 0
-	alarm8004Definition.ClearDelay = 0
+	
+    var alarm72004Definition alarm.AlarmDefinition
+	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
+	alarm72004Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB/G-NODEB"
+	alarm72004Definition.EventType = "Communication error"
+	alarm72004Definition.OperationInstructions = "Not defined"
+	alarm72004Definition.RaiseDelay = 0
+	alarm72004Definition.ClearDelay = 0
 
-	var alarm8005Definition alarm.AlarmDefinition
-	alarm8005Definition.AlarmId = alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS
-	alarm8005Definition.AlarmText = "TCP CONNECTIVITY LOST TO DBAAS"
-	alarm8005Definition.EventType = "Communication error"
-	alarm8005Definition.OperationInstructions = "Not defined"
-	alarm8005Definition.RaiseDelay = 0
-	alarm8005Definition.ClearDelay = 0
+	var alarm72008Definition alarm.AlarmDefinition
+	alarm72008Definition.AlarmId = alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD
+	alarm72008Definition.AlarmText = "ACTIVE ALARM EXCEED MAX THRESHOLD"
+	alarm72008Definition.EventType = "storage warning"
+	alarm72008Definition.OperationInstructions = "Clear alarms or raise threshold"
+	alarm72008Definition.RaiseDelay = 0
+	alarm72008Definition.ClearDelay = 0
 
-	var alarm8006Definition alarm.AlarmDefinition
-	alarm8006Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_GNODEB
-	alarm8006Definition.AlarmText = "E2 CONNECTIVITY LOST TO G-NODEB"
-	alarm8006Definition.EventType = "Communication error"
-	alarm8006Definition.OperationInstructions = "Not defined"
-	alarm8006Definition.RaiseDelay = 0
-	alarm8006Definition.ClearDelay = 0
+	var alarm72009Definition alarm.AlarmDefinition
+	alarm72009Definition.AlarmId = alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD
+	alarm72009Definition.AlarmText = "ALARM HISTORY EXCEED MAX THRESHOLD"
+	alarm72009Definition.EventType = "storage warning"
+	alarm72009Definition.OperationInstructions = "Clear alarms or raise threshold"
+	alarm72009Definition.RaiseDelay = 0
+	alarm72009Definition.ClearDelay = 0
 
-	var alarm8007Definition alarm.AlarmDefinition
-	alarm8007Definition.AlarmId = alarm.E2_CONNECTIVITY_LOST_TO_ENODEB
-	alarm8007Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB"
-	alarm8007Definition.EventType = "Communication error"
-	alarm8007Definition.OperationInstructions = "Not defined"
-	alarm8007Definition.RaiseDelay = 0
-	alarm8007Definition.ClearDelay = 0
-
-	var alarm8008Definition alarm.AlarmDefinition
-	alarm8008Definition.AlarmId = alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD
-	alarm8008Definition.AlarmText = "ACTIVE ALARM EXCEED MAX THRESHOLD"
-	alarm8008Definition.EventType = "storage warning"
-	alarm8008Definition.OperationInstructions = "Clear alarms or raise threshold"
-	alarm8008Definition.RaiseDelay = 0
-	alarm8008Definition.ClearDelay = 0
-
-	var alarm8009Definition alarm.AlarmDefinition
-	alarm8009Definition.AlarmId = alarm.ALARM_HISTORY_EXCEED_MAX_THRESHOLD
-	alarm8009Definition.AlarmText = "ALARM HISTORY EXCEED MAX THRESHOLD"
-	alarm8009Definition.EventType = "storage warning"
-	alarm8009Definition.OperationInstructions = "Clear alarms or raise threshold"
-	alarm8009Definition.RaiseDelay = 0
-	alarm8009Definition.ClearDelay = 0
-
-	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition, &alarm8005Definition, &alarm8006Definition, &alarm8007Definition, &alarm8008Definition, &alarm8009Definition}}
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm72004Definition, &alarm72008Definition, &alarm72009Definition}}
 	pbodyEn, _ := json.Marshal(pbodyParams)
 	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
 	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
@@ -196,14 +173,14 @@ func TestGetAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("TestGetAlarmDefinitions")
 	var alarmDefinition alarm.AlarmDefinition
 	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars := map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response := executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusOK, response.Code)
 	json.NewDecoder(response.Body).Decode(&alarmDefinition)
 	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
-	if alarmDefinition.AlarmId != alarm.RIC_RT_DISTRIBUTION_FAILED || alarmDefinition.AlarmText != "RIC ROUTING TABLE DISTRIBUTION FAILED" {
+	if alarmDefinition.AlarmId != alarm.E2_CONNECTION_PROBLEM || alarmDefinition.AlarmText != "E2 CONNECTION PROBLEM" {
 		t.Errorf("Incorrect alarm definition")
 	}
 }
@@ -222,40 +199,40 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 		xapp.Logger.Info("alarm definition = %v", *alarmDefinition)
 	}
 
-	//Delete 8004
+	//Delete 72004
 	req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
-	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars := map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
 	response = executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusOK, response.Code)
 
-	//Get 8004 fail
+	//Get 72004 fail
 	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars = map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response = executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
-	//Set 8004 success
-	var alarm8004Definition alarm.AlarmDefinition
-	alarm8004Definition.AlarmId = alarm.RIC_RT_DISTRIBUTION_FAILED
-	alarm8004Definition.AlarmText = "RIC ROUTING TABLE DISTRIBUTION FAILED"
-	alarm8004Definition.EventType = "Processing error"
-	alarm8004Definition.OperationInstructions = "Not defined"
-	alarm8004Definition.RaiseDelay = 0
-	alarm8004Definition.ClearDelay = 0
-	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm8004Definition}}
+	//Set 72004 success
+	var alarm72004Definition alarm.AlarmDefinition
+	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
+	alarm72004Definition.AlarmText = "E2 CONNECTION PROBLEM"
+	alarm72004Definition.EventType = "Processing error"
+	alarm72004Definition.OperationInstructions = "Not defined"
+	alarm72004Definition.RaiseDelay = 0
+	alarm72004Definition.ClearDelay = 0
+	pbodyParams := RicAlarmDefinitions{AlarmDefinitions: []*alarm.AlarmDefinition{&alarm72004Definition}}
 	pbodyEn, _ := json.Marshal(pbodyParams)
 	req, _ = http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(pbodyEn))
 	handleFunc = http.HandlerFunc(alarmManager.SetAlarmDefinition)
 	response = executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusOK, response.Code)
 
-	//Get 8004 success
+	//Get 72004 success
 	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars = map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response = executeRequest(req, handleFunc)
@@ -267,7 +244,7 @@ func TestNewAlarmStoredAndPostedSucess(t *testing.T) {
 	ts := CreatePromAlertSimulator(t, "POST", "/api/v2/alerts", http.StatusOK, models.LabelSet{})
 	defer ts.Close()
 
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
@@ -307,14 +284,14 @@ func TestAlarmClearedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise the alarm
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityCritical, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	VerifyAlarm(t, a, 1)
 
 	// Now Clear the alarm and check alarm is removed
-	a = alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityCritical, "Some App data", "eth 0 1")
-	assert.Nil(t, alarmer.Clear(a), "clear failed")
+	a = alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityCritical, "Some App data", "eth 0 1")
+    assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), 0)
@@ -326,10 +303,10 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two alarms
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
-	assert.Nil(t, alarmer.Raise(a), "raise failed")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
+    assert.Nil(t, alarmer.Raise(a), "raise failed")
 
-	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
+	b := alarmer.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 
 	time.Sleep(time.Duration(5) * time.Second)
@@ -346,10 +323,10 @@ func TestMultipleAlarmsClearedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two alarms
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
-	b := alarmer.NewAlarm(alarm.TCP_CONNECTIVITY_LOST_TO_DBAAS, alarm.SeverityMinor, "Hello", "abcd 11")
+	b := alarmer.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Clear(b), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
@@ -362,7 +339,7 @@ func TestAlarmsSuppresedSucess(t *testing.T) {
 	defer ts.Close()
 
 	// Raise two similar/matching alarms ... the second one suppresed
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
@@ -401,7 +378,7 @@ func TestActiveAlarmMaxThresholds(t *testing.T) {
 	alarmManager.maxActiveAlarms = 0
 	alarmManager.maxAlarmHistory = 10
 
-	a := alarmer.NewAlarm(alarm.E2_CONNECTIVITY_LOST_TO_GNODEB, alarm.SeverityCritical, "Some Application data", "eth 0 2")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityCritical, "Some Application data", "eth 0 2")
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	var alarmConfigParams alarm.AlarmConfigParams
@@ -464,7 +441,7 @@ func TestDelayedAlarmRaiseAndClear(t *testing.T) {
 
 	// Verify 9999 alarm definition
 	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars := map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars := map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response = executeRequest(req, handleFunc)
@@ -500,7 +477,7 @@ func TestDelayedAlarmRaiseAndClear2(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	VerifyAlarm(t, a, activeAlarmsBeforeTest+1)
 
-	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	b := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 	VerifyAlarm(t, b, activeAlarmsBeforeTest+2)
 
@@ -541,7 +518,7 @@ func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
 
 	// Verify 9999 alarm definition
 	req, _ = http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-	vars = map[string]string{"alarmId": strconv.FormatUint(8004, 10)}
+	vars = map[string]string{"alarmId": strconv.FormatUint(72004, 10)}
 	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.GetAlarmDefinition)
 	response = executeRequest(req, handleFunc)
@@ -558,7 +535,7 @@ func TestDelayedAlarmRaiseAndClear3(t *testing.T) {
 	assert.Nil(t, alarmer.Raise(a), "raise failed")
 	VerifyAlarm(t, a, activeAlarmsBeforeTest+1)
 
-	b := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	b := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
 	VerifyAlarm(t, b, activeAlarmsBeforeTest+2)
 
@@ -575,11 +552,11 @@ func TestClearExpiredAlarms(t *testing.T) {
 	xapp.Logger.Info("TestClearExpiredAlarms")
 
 	a := alarm.AlarmMessage{
-		Alarm:       alarmer.NewAlarm(8007, alarm.SeverityWarning, "threshold", ""),
+		Alarm:       alarmer.NewAlarm(72004, alarm.SeverityWarning, "threshold", ""),
 		AlarmAction: alarm.AlarmActionRaise,
 		AlarmTime:   time.Now().UnixNano(),
 	}
-	d := alarm.RICAlarmDefinitions[8007]
+	d := alarm.RICAlarmDefinitions[72004]
 	n := AlarmNotification{a, *d}
 	alarmManager.activeAlarms = make([]AlarmNotification, 0)
 	alarmManager.UpdateActiveAlarmList(&n)
@@ -593,7 +570,7 @@ func TestClearExpiredAlarms(t *testing.T) {
 	assert.False(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
 
 	// TTL not expired
-	a.Alarm.SpecificProblem = 8007
+	a.Alarm.SpecificProblem = 72004
 	d.TimeToLive = 2
 	assert.False(t, alarmManager.ClearExpiredAlarms(n, 0, false), "ClearExpiredAlarms failed")
 

@@ -47,7 +47,7 @@ func TestGetActiveAlarmsRESTInterface(t *testing.T) {
 }
 
 func TestRaiseAlarmRESTInterface(t *testing.T) {
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	b, err := json.Marshal(&a)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -67,7 +67,7 @@ func TestRaiseAlarmRESTInterface(t *testing.T) {
 }
 
 func TestClearAlarmRESTInterface(t *testing.T) {
-	a := alarmer.NewAlarm(alarm.RIC_RT_DISTRIBUTION_FAILED, alarm.SeverityMajor, "Some App data", "eth 0 1")
+	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
 	b, err := json.Marshal(&a)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
