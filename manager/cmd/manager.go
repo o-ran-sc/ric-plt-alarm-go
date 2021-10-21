@@ -328,6 +328,7 @@ func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, st
 		"alertname":   alarmDef.AlarmText,
 		"severity":    string(newAlarm.PerceivedSeverity),
 		"service":     fmt.Sprintf("%s/%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId),
+		"info":        newAlarm.IdentifyingInfo,
 		"system_name": "RIC",
 	}
 	amAnnotations := models.LabelSet{

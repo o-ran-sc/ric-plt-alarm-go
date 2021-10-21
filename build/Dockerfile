@@ -20,6 +20,8 @@
 
 FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 as ubuntu-alarm-manager
 
+RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certificates
+
 # Install utilities
 RUN apt update && apt install -y iputils-ping net-tools curl sudo
 
