@@ -23,7 +23,14 @@ FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 as ubuntu-alarm
 RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certificates
 
 # Install utilities
-RUN apt update && apt install -y iputils-ping net-tools curl sudo
+RUN apt update && apt install -y iputils-ping net-tools curl sudo build-essential
+
+# Installing the go version
+ENV GOLANG_VERSION 1.17.1
+RUN wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
+        && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
 
 # Install dependencies, compile and test the module
 RUN mkdir -p /go/src/am
