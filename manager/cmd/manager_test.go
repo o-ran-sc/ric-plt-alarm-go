@@ -215,7 +215,23 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 	response = executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
-	//Set 72004 success
+    //Delete Alarm which doesn't present
+    req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+    vars = map[string]string{"alarmId": strconv.FormatUint(882004, 10)}
+    req = mux.SetURLVars(req, vars)
+    handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+    response = executeRequest(req, handleFunc)
+    checkResponseCode(t, http.StatusOK, response.Code)
+
+    //Delete Alarm which is incorrect present
+    req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+    vars = map[string]string{"alarmId": strconv.FormatUint(1234, 8)}
+    req = mux.SetURLVars(req, vars)
+    handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+    response = executeRequest(req, handleFunc)
+    checkResponseCode(t, http.StatusOK, response.Code)	
+    
+    //Set 72004 success
 	var alarm72004Definition alarm.AlarmDefinition
 	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
 	alarm72004Definition.AlarmText = "E2 CONNECTION PROBLEM"
