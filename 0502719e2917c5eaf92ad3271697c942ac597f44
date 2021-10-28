@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2eec2ba6_81fedd07",
+        "filename": "manager/cmd/manager_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1000031
+      },
+      "writtenOn": "2021-10-28T10:17:29Z",
+      "side": 1,
+      "message": "Indentation missing?",
+      "revId": "0502719e2917c5eaf92ad3271697c942ac597f44",
+      "serverId": "84e4e190-e623-4c37-9eda-58b1937c1b53"
+    }
+  ]
+}
