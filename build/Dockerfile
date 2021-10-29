@@ -26,7 +26,7 @@ RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certif
 RUN apt update && apt install -y iputils-ping net-tools curl sudo build-essential
 
 # Installing the go version
-ENV GOLANG_VERSION 1.17.1
+ENV GOLANG_VERSION 1.16.1
 RUN wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
         && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
 ENV PATH="/usr/local/go/bin:${PATH}"
