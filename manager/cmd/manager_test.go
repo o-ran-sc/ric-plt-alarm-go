@@ -216,21 +216,6 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
         //Delete Alarm which doesn't present
-        req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
-        vars = map[string]string{"alarmId": strconv.FormatUint(882004, 10)}
-        req = mux.SetURLVars(req, vars)
-        handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
-        response = executeRequest(req, handleFunc)
-        checkResponseCode(t, http.StatusOK, response.Code)
-
-        //Delete Alarm which is incorrect present
-        req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
-        vars = map[string]string{"alarmId": strconv.FormatUint(1234, 8)}
-        req = mux.SetURLVars(req, vars)
-        handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
-        response = executeRequest(req, handleFunc)
-        checkResponseCode(t, http.StatusOK, response.Code)	
-    
         //Set 72004 success
 	var alarm72004Definition alarm.AlarmDefinition
 	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
@@ -651,28 +636,6 @@ func TestConfigChangeCB(t *testing.T) {
 	alarmManager.ConfigChangeCB("AlarmManager")
 }
 
-func TestPersistentStorage(t *testing.T) {
-    xapp.Logger.Info("TestPersistentStorage")
-    alarmManager.alarmInfoPvFile = "../../definitions/sample.json"
-    alarmManager.ReadAlarmInfoFromPersistentVolume()
-}
-
-func TestReadAlarmDefinitionFromJsonWrongFilename(t *testing.T) {
-  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
-    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonWrongFilename")
-    os.Setenv("DEF_FILE","test.json")
-    alarmManager.ReadAlarmDefinitionFromJson()
-  // correct the filename
-}
-
-func TestReadAlarmDefinitionFromJsonInvalidFilename(t *testing.T) {
-  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
-    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonInvalidFilename")
-    os.Setenv("DEF_FILE","../../definitions/test.json")
-    alarmManager.ReadAlarmDefinitionFromJson()
-  // correct the filename
-}
-
 func TestPostAlarm(t *testing.T) {
         xapp.Logger.Info("TestPostAlarm")
         var activeAlarms []AlarmNotification
@@ -704,6 +667,69 @@ func TestConfigChangeCBFailure(t *testing.T) {
 	alarmManager.ConfigChangeCB("AlarmManager")
 }
 
+func TestReadAlarmDefinitionFromJsonWrongFilename(t *testing.T) {
+  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonWrongFilename")
+    os.Setenv("DEF_FILE","test.json")
+    alarmManager.ReadAlarmDefinitionFromJson()
+  // correct the filename
+}
+
+func TestReadAlarmDefinitionFromJsonInvalidFilename(t *testing.T) {
+  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonInvalidFilename")
+    os.Setenv("DEF_FILE","../../definitions/test.json")
+    alarmManager.ReadAlarmDefinitionFromJson()
+  // correct the filename
+}
+
+func TestPersistentStorage(t *testing.T) {
+    xapp.Logger.Info("TestPersistentStorage")
+    alarmManager.alarmInfoPvFile = "../../definitions/sample.json"
+    alarmManager.ReadAlarmInfoFromPersistentVolume()
+}
+
+func TestDeleteAlarmDefinitions1(t *testing.T) {
+        xapp.Logger.Info("TestDeleteAlarmDefinitions1")
+        //Get all
+        //Delete Alarm which doesn't present
+        req, _ := http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": strconv.FormatUint(882004, 10)}
+        req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+        checkResponseCode(t, http.StatusOK, response.Code)
+
+        //Delete Alarm which is incorrect present
+        req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+        vars = map[string]string{"alarmId": strconv.FormatUint(898989, 8)}
+        req = mux.SetURLVars(req, vars)
+	handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+	response = executeRequest(req, handleFunc)
+        checkResponseCode(t, http.StatusOK, response.Code)
+}
+
+func TestGetPreDefinedAlarmInvalidAlarm(t *testing.T) {
+       xapp.Logger.Info("TestGetPreDefinedAlarmInvalidAlarm")
+       req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+       vars := map[string]string{"alarmId": "asdsc"}
+       req = mux.SetURLVars(req, vars)
+       handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+       response := executeRequest(req, handleFunc)
+       xapp.Logger.Info("response code = %v",response.Code)
+       checkResponseCode(t, http.StatusBadRequest, response.Code)
+}
+
+func TestDeleteAlarmDefinitions2(t *testing.T) {
+       xapp.Logger.Info("TestDeleteAlarmDefinitions2")
+       req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+       //Giving Wrong alarmId which can't convert into int
+       vars := map[string]string{"alarmId": "asdsc"}
+       req = mux.SetURLVars(req, vars)
+       handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+       response := executeRequest(req, handleFunc)
+       checkResponseCode(t, http.StatusBadRequest, response.Code)
+}
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
 	receivedAlert := waitForEvent()
