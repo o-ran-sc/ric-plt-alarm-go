@@ -18,7 +18,7 @@
 #   platform project (RICP).
 #==================================================================================
 
-FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu18-c-go:1.9.0 as ubuntu-alarm-manager
+FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu20-c-go:1.0.0 as ubuntu-alarm-manager
 
 RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certificates
 
@@ -41,7 +41,7 @@ WORKDIR "/go/src/am"
 RUN ./build/build_ubuntu.sh
 
 # Final, executable and deployable container
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /
