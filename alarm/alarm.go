@@ -55,8 +55,11 @@ func InitAlarm(mo, id string) (*RICAlarm, error) {
 		r.managerUrl = os.Getenv("ALARM_MANAGER_URL")
 	}
 
-	if os.Getenv("ALARM_IF_RMR") == "" {
-		go InitRMR(r, "")
+	rmrservname := os.Getenv("ALARM_MGR_SERVICE_NAME")
+	rmrservport := os.Getenv("ALARM_MGR_SERVICE_PORT")
+
+	if rmrservname != "" && rmrservport != "" {
+		go InitRMR(r, rmrservname+":"+rmrservport)
 	} else {
 		go InitRMR(r, ALARM_MANAGER_RMR_URL)
 	}
@@ -71,8 +74,8 @@ func (r *RICAlarm) NewAlarm(sp int, severity Severity, ainfo, iinfo string) Alar
 		ApplicationId:     r.appId,
 		SpecificProblem:   sp,
 		PerceivedSeverity: severity,
-		AdditionalInfo:    ainfo,
 		IdentifyingInfo:   iinfo,
+		AdditionalInfo:    ainfo,
 	}
 }
 
