@@ -46,19 +46,35 @@ import "C"
 // The identities are used when raising/clearing alarms, unless provided by the applications.
 func InitAlarm(mo, id string) (*RICAlarm, error) {
 	r := &RICAlarm{
-		moId:       mo,
-		appId:      id,
-		managerUrl: ALARM_MANAGER_HTTP_URL,
+		moId:  mo,
+		appId: id,
 	}
+
+	//
+	// http service information (used in case of no rmr connectivity)
+	//
+	namespace := os.Getenv("PLT_NAMESPACE")
 
 	if os.Getenv("ALARM_MANAGER_URL") != "" {
 		r.managerUrl = os.Getenv("ALARM_MANAGER_URL")
+	} else if namespace != "" {
+		r.managerUrl = fmt.Sprintf("http://service-%s-alarmmanager-http.%s:8080", namespace, namespace)
+	} else {
+		r.managerUrl = "http://127.0.0.1:8080"
 	}
 
-	if os.Getenv("ALARM_IF_RMR") == "" {
-		go InitRMR(r, "")
+	//
+	// rmr service
+	//
+	rmrservname := os.Getenv("ALARM_MANAGER_SERVICE_NAME")
+	rmrservport := os.Getenv("ALARM_MANAGER_SERVICE_PORT")
+
+	if rmrservname != "" && rmrservport != "" {
+		go InitRMR(r, rmrservname+":"+rmrservport)
+	} else if namespace != "" {
+		go InitRMR(r, fmt.Sprintf("service-%s-alarmmanager-rmr.%s:4560", namespace, namespace))
 	} else {
-		go InitRMR(r, ALARM_MANAGER_RMR_URL)
+		go InitRMR(r, "")
 	}
 
 	return r, nil
@@ -71,8 +87,8 @@ func (r *RICAlarm) NewAlarm(sp int, severity Severity, ainfo, iinfo string) Alar
 		ApplicationId:     r.appId,
 		SpecificProblem:   sp,
 		PerceivedSeverity: severity,
-		AdditionalInfo:    ainfo,
 		IdentifyingInfo:   iinfo,
+		AdditionalInfo:    ainfo,
 	}
 }
 

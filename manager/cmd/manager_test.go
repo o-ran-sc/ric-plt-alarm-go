@@ -36,7 +36,7 @@ import (
 	"testing"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
 	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/alertmanager/api/v2/models"
@@ -78,15 +78,15 @@ func TestGetPreDefinedAlarmDefinitions(t *testing.T) {
 	checkResponseCode(t, http.StatusOK, response.Code)
 	json.NewDecoder(response.Body).Decode(&alarmDefinition)
 	xapp.Logger.Info("alarm definition = %v", alarmDefinition)
-    if alarmDefinition.AlarmId != alarm.E2_CONNECTION_PROBLEM || alarmDefinition.AlarmText != "E2 CONNECTION PROBLEM" {
+	if alarmDefinition.AlarmId != alarm.E2_CONNECTION_PROBLEM || alarmDefinition.AlarmText != "E2 CONNECTION PROBLEM" {
 		t.Errorf("Incorrect alarm definition")
 	}
 }
 
 func TestSetAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("TestSetAlarmDefinitions")
-	
-    var alarm72004Definition alarm.AlarmDefinition
+
+	var alarm72004Definition alarm.AlarmDefinition
 	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
 	alarm72004Definition.AlarmText = "E2 CONNECTIVITY LOST TO E-NODEB/G-NODEB"
 	alarm72004Definition.EventType = "Communication error"
@@ -119,54 +119,53 @@ func TestSetAlarmDefinitions(t *testing.T) {
 	xapp.Logger.Info("status = %v", status)
 }
 
-
 func TestSetAlarmConfigDecodeError(t *testing.T) {
-        xapp.Logger.Info("TestSetAlarmConfigDecodeError")
+	xapp.Logger.Info("TestSetAlarmConfigDecodeError")
 
 	var jsonStr = []byte(`{"test":"Invalid Alarm Data", "test1" 123}`)
-        req, _ := http.NewRequest("POST", "/ric/v1/alarms", bytes.NewBuffer(jsonStr))
-        handleFunc := http.HandlerFunc(alarmManager.SetAlarmConfig)
-        response := executeRequest(req, handleFunc)
-        status := checkResponseCode(t,http.StatusOK,response.Code)
-        xapp.Logger.Info("status = %v", status)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms", bytes.NewBuffer(jsonStr))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmConfig)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusOK, response.Code)
+	xapp.Logger.Info("status = %v", status)
 }
 
 func TestSetAlarmDefinitionDecodeError(t *testing.T) {
-        xapp.Logger.Info("TestSetAlarmDefinitionDecodeError")
+	xapp.Logger.Info("TestSetAlarmDefinitionDecodeError")
 
-        var jsonStr = []byte(`{"test":"Invalid Alarm Data", "test1" 123}`)
-        req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(jsonStr))
-        handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
-        response := executeRequest(req, handleFunc)
-        status := checkResponseCode(t,http.StatusBadRequest,response.Code)
-        xapp.Logger.Info("status = %v", status)
+	var jsonStr = []byte(`{"test":"Invalid Alarm Data", "test1" 123}`)
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", bytes.NewBuffer(jsonStr))
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusBadRequest, response.Code)
+	xapp.Logger.Info("status = %v", status)
 }
 
 func TestRaiseAlarmEmptyBody(t *testing.T) {
-        xapp.Logger.Info("TestRaiseAlarmEmptyBody")
-        req, _ := http.NewRequest("POST", "/ric/v1/alarms", nil)
-        handleFunc := http.HandlerFunc(alarmManager.RaiseAlarm)
-        response := executeRequest(req, handleFunc)
-        status := checkResponseCode(t,http.StatusOK,response.Code)
-        xapp.Logger.Info("status = %v", status)
+	xapp.Logger.Info("TestRaiseAlarmEmptyBody")
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms", nil)
+	handleFunc := http.HandlerFunc(alarmManager.RaiseAlarm)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusOK, response.Code)
+	xapp.Logger.Info("status = %v", status)
 }
 
 func TestSetAlarmDefinitionsEmptyBody(t *testing.T) {
-        xapp.Logger.Info("TestSetAlarmDefinitionsEmptyBody")
-        req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", nil)
-        handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
-        response := executeRequest(req, handleFunc)
-        status := checkResponseCode(t,http.StatusBadRequest,response.Code)
-        xapp.Logger.Info("status = %v", status)
+	xapp.Logger.Info("TestSetAlarmDefinitionsEmptyBody")
+	req, _ := http.NewRequest("POST", "/ric/v1/alarms/define", nil)
+	handleFunc := http.HandlerFunc(alarmManager.SetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusBadRequest, response.Code)
+	xapp.Logger.Info("status = %v", status)
 }
 
 func TestClearAlarmEmptyBody(t *testing.T) {
-        xapp.Logger.Info("TestClearAlarmEmptyBody")
-        req, _ := http.NewRequest("DELETE", "/ric/v1/alarms", nil)
-        handleFunc := http.HandlerFunc(alarmManager.ClearAlarm)
-        response := executeRequest(req, handleFunc)
-        status := checkResponseCode(t,http.StatusOK,response.Code)
-        xapp.Logger.Info("status = %v", status)
+	xapp.Logger.Info("TestClearAlarmEmptyBody")
+	req, _ := http.NewRequest("DELETE", "/ric/v1/alarms", nil)
+	handleFunc := http.HandlerFunc(alarmManager.ClearAlarm)
+	response := executeRequest(req, handleFunc)
+	status := checkResponseCode(t, http.StatusOK, response.Code)
+	xapp.Logger.Info("status = %v", status)
 }
 
 func TestGetAlarmDefinitions(t *testing.T) {
@@ -215,8 +214,8 @@ func TestDeleteAlarmDefinitions(t *testing.T) {
 	response = executeRequest(req, handleFunc)
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
-        //Delete Alarm which doesn't present
-        //Set 72004 success
+	//Delete Alarm which doesn't present
+	//Set 72004 success
 	var alarm72004Definition alarm.AlarmDefinition
 	alarm72004Definition.AlarmId = alarm.E2_CONNECTION_PROBLEM
 	alarm72004Definition.AlarmText = "E2 CONNECTION PROBLEM"
@@ -292,7 +291,7 @@ func TestAlarmClearedSucess(t *testing.T) {
 
 	// Now Clear the alarm and check alarm is removed
 	a = alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityCritical, "Some App data", "eth 0 1")
-    assert.Nil(t, alarmer.Clear(a), "clear failed")
+	assert.Nil(t, alarmer.Clear(a), "clear failed")
 
 	time.Sleep(time.Duration(2) * time.Second)
 	assert.Equal(t, len(alarmManager.activeAlarms), 0)
@@ -305,7 +304,7 @@ func TestMultipleAlarmsRaisedSucess(t *testing.T) {
 
 	// Raise two alarms
 	a := alarmer.NewAlarm(alarm.E2_CONNECTION_PROBLEM, alarm.SeverityMajor, "Some App data", "eth 0 1")
-    assert.Nil(t, alarmer.Raise(a), "raise failed")
+	assert.Nil(t, alarmer.Raise(a), "raise failed")
 
 	b := alarmer.NewAlarm(alarm.ACTIVE_ALARM_EXCEED_MAX_THRESHOLD, alarm.SeverityMinor, "Hello", "abcd 11")
 	assert.Nil(t, alarmer.Raise(b), "raise failed")
@@ -637,98 +636,98 @@ func TestConfigChangeCB(t *testing.T) {
 }
 
 func TestPostAlarm(t *testing.T) {
-        xapp.Logger.Info("TestPostAlarm")
-        var activeAlarms []AlarmNotification
-        activeAlarms = make([]AlarmNotification, 1)
-        alarmManager.PostAlarm(&activeAlarms[0])
+	xapp.Logger.Info("TestPostAlarm")
+	var activeAlarms []AlarmNotification
+	activeAlarms = make([]AlarmNotification, 1)
+	alarmManager.PostAlarm(&activeAlarms[0])
 }
 
 func TestPostAlarm1(t *testing.T) {
-        xapp.Logger.Info("TestPostAlarm")
-        var activeAlarms []AlarmNotification
-        activeAlarms = make([]AlarmNotification, 2)
-        alarmManager.PostAlarm(&activeAlarms[0])
+	xapp.Logger.Info("TestPostAlarm")
+	var activeAlarms []AlarmNotification
+	activeAlarms = make([]AlarmNotification, 2)
+	alarmManager.PostAlarm(&activeAlarms[0])
 }
 
-func TestNewAlarmManagerOther(t *testing.T){
-    NewAlarmManager("", 0, true)
+func TestNewAlarmManagerOther(t *testing.T) {
+	NewAlarmManager("", 0, true)
 }
 
 func TestStatusCallbackFailure(t *testing.T) {
-        xapp.Logger.Info("TestStatusCallbackFailure")
-	alarmManager.rmrReady = false 
-        assert.Equal(t, false, alarmManager.StatusCB())
+	xapp.Logger.Info("TestStatusCallbackFailure")
+	alarmManager.rmrReady = false
+	assert.Equal(t, false, alarmManager.StatusCB())
 }
 
 func TestConfigChangeCBFailure(t *testing.T) {
-        xapp.Logger.Info("TestConfigChangeCBFailure")
+	xapp.Logger.Info("TestConfigChangeCBFailure")
 	alarmManager.maxActiveAlarms = 0
 	alarmManager.maxAlarmHistory = 0
 	alarmManager.ConfigChangeCB("AlarmManager")
 }
 
 func TestReadAlarmDefinitionFromJsonWrongFilename(t *testing.T) {
-  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
-    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonWrongFilename")
-    os.Setenv("DEF_FILE","test.json")
-    alarmManager.ReadAlarmDefinitionFromJson()
-  // correct the filename
+	// use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+	xapp.Logger.Info("TestReadAlarmDefinitionFromJsonWrongFilename")
+	os.Setenv("DEF_FILE", "test.json")
+	alarmManager.ReadAlarmDefinitionFromJson()
+	// correct the filename
 }
 
 func TestReadAlarmDefinitionFromJsonInvalidFilename(t *testing.T) {
-  // use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
-    xapp.Logger.Info("TestReadAlarmDefinitionFromJsonInvalidFilename")
-    os.Setenv("DEF_FILE","../../definitions/test.json")
-    alarmManager.ReadAlarmDefinitionFromJson()
-  // correct the filename
+	// use   to set wrong file name os.Setenv("SITE_TITLE", "Test Site")
+	xapp.Logger.Info("TestReadAlarmDefinitionFromJsonInvalidFilename")
+	os.Setenv("DEF_FILE", "../../definitions/test.json")
+	alarmManager.ReadAlarmDefinitionFromJson()
+	// correct the filename
 }
 
 func TestPersistentStorage(t *testing.T) {
-    xapp.Logger.Info("TestPersistentStorage")
-    alarmManager.alarmInfoPvFile = "../../definitions/sample.json"
-    alarmManager.ReadAlarmInfoFromPersistentVolume()
+	xapp.Logger.Info("TestPersistentStorage")
+	alarmManager.alarmInfoPvFile = "../../definitions/sample.json"
+	alarmManager.ReadAlarmInfoFromPersistentVolume()
 }
 
 func TestDeleteAlarmDefinitions1(t *testing.T) {
-        xapp.Logger.Info("TestDeleteAlarmDefinitions1")
-        //Get all
-        //Delete Alarm which doesn't present
-        req, _ := http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+	xapp.Logger.Info("TestDeleteAlarmDefinitions1")
+	//Get all
+	//Delete Alarm which doesn't present
+	req, _ := http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
 	vars := map[string]string{"alarmId": strconv.FormatUint(882004, 10)}
-        req = mux.SetURLVars(req, vars)
+	req = mux.SetURLVars(req, vars)
 	handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
 	response := executeRequest(req, handleFunc)
-        checkResponseCode(t, http.StatusOK, response.Code)
+	checkResponseCode(t, http.StatusOK, response.Code)
 
-        //Delete Alarm which is incorrect present
-        req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
-        vars = map[string]string{"alarmId": strconv.FormatUint(898989, 8)}
-        req = mux.SetURLVars(req, vars)
+	//Delete Alarm which is incorrect present
+	req, _ = http.NewRequest("DELETE", "/ric/v1/alarms/define", nil)
+	vars = map[string]string{"alarmId": strconv.FormatUint(898989, 8)}
+	req = mux.SetURLVars(req, vars)
 	handleFunc = http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
 	response = executeRequest(req, handleFunc)
-        checkResponseCode(t, http.StatusOK, response.Code)
+	checkResponseCode(t, http.StatusOK, response.Code)
 }
 
 func TestGetPreDefinedAlarmInvalidAlarm(t *testing.T) {
-       xapp.Logger.Info("TestGetPreDefinedAlarmInvalidAlarm")
-       req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-       vars := map[string]string{"alarmId": "asdsc"}
-       req = mux.SetURLVars(req, vars)
-       handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
-       response := executeRequest(req, handleFunc)
-       xapp.Logger.Info("response code = %v",response.Code)
-       checkResponseCode(t, http.StatusBadRequest, response.Code)
+	xapp.Logger.Info("TestGetPreDefinedAlarmInvalidAlarm")
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	vars := map[string]string{"alarmId": "asdsc"}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.GetAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	xapp.Logger.Info("response code = %v", response.Code)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
 }
 
 func TestDeleteAlarmDefinitions2(t *testing.T) {
-       xapp.Logger.Info("TestDeleteAlarmDefinitions2")
-       req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
-       //Giving Wrong alarmId which can't convert into int
-       vars := map[string]string{"alarmId": "asdsc"}
-       req = mux.SetURLVars(req, vars)
-       handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
-       response := executeRequest(req, handleFunc)
-       checkResponseCode(t, http.StatusBadRequest, response.Code)
+	xapp.Logger.Info("TestDeleteAlarmDefinitions2")
+	req, _ := http.NewRequest("GET", "/ric/v1/alarms/define", nil)
+	//Giving Wrong alarmId which can't convert into int
+	vars := map[string]string{"alarmId": "asdsc"}
+	req = mux.SetURLVars(req, vars)
+	handleFunc := http.HandlerFunc(alarmManager.DeleteAlarmDefinition)
+	response := executeRequest(req, handleFunc)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
 }
 
 func VerifyAlarm(t *testing.T, a alarm.Alarm, expectedCount int) string {
@@ -849,5 +848,3 @@ func readJSONFromFile(filename string) ([]byte, error) {
 	}
 	return file, nil
 }
-
-

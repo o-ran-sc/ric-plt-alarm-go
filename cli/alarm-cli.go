@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
 	clientruntime "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/jedib0t/go-pretty/table"

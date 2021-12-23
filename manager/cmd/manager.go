@@ -29,7 +29,7 @@ import (
 	"os"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	clientruntime "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"

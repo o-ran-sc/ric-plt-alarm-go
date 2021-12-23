@@ -23,8 +23,6 @@ package alarm
 import (
 	"sync"
 	"unsafe"
-	"os"
-	"fmt"
 )
 
 import "C"
@@ -49,8 +47,8 @@ type Alarm struct {
 	ApplicationId     string   `json:"applicationId"`
 	SpecificProblem   int      `json:"specificProblem"`
 	PerceivedSeverity Severity `json:"perceivedSeverity"`
-	AdditionalInfo    string   `json:"additionalInfo"`
 	IdentifyingInfo   string   `json:"identifyingInfo"`
+	AdditionalInfo    string   `json:"additionalInfo"`
 }
 
 // Alarm actions
@@ -91,7 +89,7 @@ const (
 
 // Temp alarm constants & definitions
 const (
-	E2_CONNECTION_PROBLEM     int = 72004
+	E2_CONNECTION_PROBLEM              int = 72004
 	ACTIVE_ALARM_EXCEED_MAX_THRESHOLD  int = 72007
 	ALARM_HISTORY_EXCEED_MAX_THRESHOLD int = 72008
 )
@@ -108,9 +106,3 @@ type AlarmDefinition struct {
 
 var RICAlarmDefinitions map[int]*AlarmDefinition
 var RICPerfAlarmObjects map[int]*Alarm
-
-var (
-	namespace = os.Getenv("PLT_NAMESPACE")
-	ALARM_MANAGER_HTTP_URL string = fmt.Sprintf("http://service-%s-alarmmanager-http.%s:8080", namespace, namespace) 
-	ALARM_MANAGER_RMR_URL  string = fmt.Sprintf("service-%s-alarmmanager-rmr.%s:4560", namespace, namespace)
-)

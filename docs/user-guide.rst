@@ -356,7 +356,7 @@ Alarm library functions can be used directly from Golang code. Rising and cleari
  package main
 
  import (
-    alarm "gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+    alarm "gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
  )
 
  func main() {

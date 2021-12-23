@@ -2,7 +2,7 @@ module gerrit.o-ran-sc.org/r/ric-plt/alarm-go
 
 go 1.16
 
-replace gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm => ./alarm/
+replace gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm => ./alarm/
 
 replace gerrit.o-ran-sc.org/r/ric-plt/xapp-frame => gerrit.o-ran-sc.org/r/ric-plt/xapp-frame.git v0.9.2-1
 
@@ -11,7 +11,7 @@ replace gerrit.o-ran-sc.org/r/ric-plt/sdlgo => gerrit.o-ran-sc.org/r/ric-plt/sdl
 replace gerrit.o-ran-sc.org/r/com/golog => gerrit.o-ran-sc.org/r/com/golog.git v0.0.2
 
 require (
-	gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm v0.0.0-00010101000000-000000000000
+	gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm v0.5.0
 	gerrit.o-ran-sc.org/r/ric-plt/xapp-frame v0.0.0-00010101000000-000000000000
 	github.com/go-openapi/runtime v0.19.11
 	github.com/go-openapi/strfmt v0.19.4

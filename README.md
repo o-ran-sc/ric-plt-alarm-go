@@ -55,7 +55,7 @@ The Alarm object contains following parameters:
 package main
 
 import (
-	alarm "gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	alarm "gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
 )
 
 func main() {

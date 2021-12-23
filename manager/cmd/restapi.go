@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/gorilla/mux"
 )
@@ -203,7 +203,7 @@ func (a *AlarmManager) doAction(w http.ResponseWriter, r *http.Request, isRaiseA
 	return err
 }
 
-// HandleViaRmr is defined but not used as of now 
+// HandleViaRmr is defined but not used as of now
 /*
 func (a *AlarmManager) HandleViaRmr(d alarm.Alarm, isRaiseAlarm bool) error {
 	alarmClient, err := alarm.InitAlarm(d.ManagedObjectId, d.ApplicationId)
