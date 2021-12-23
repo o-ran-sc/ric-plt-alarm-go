@@ -7,4 +7,4 @@ project: ric-plt/alarm-go
 ref: c2987f0fa07cafed17a492ec7d84cf238245cf7e
 containers:
     - name: ric-plt-alarmmanager
-      version: 0.5.10
+      version: 0.5.12
