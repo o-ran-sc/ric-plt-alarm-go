@@ -27,6 +27,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
@@ -79,6 +81,8 @@ func (a *AlarmManager) StartAlertTimer() {
 	tick := time.Tick(time.Duration(a.alertInterval) * time.Millisecond)
 	for range tick {
 		a.mutex.Lock()
+
+		a.ProcessAlerts()
 		for _, m := range a.activeAlarms {
 			app.Logger.Info("Re-raising alarm: %v", m)
 			a.PostAlert(a.GenerateAlertLabels(m.AlarmId, m.Alarm, AlertStatusActive, m.AlarmTime))
@@ -322,6 +326,11 @@ func (a *AlarmManager) PostAlarm(m *AlarmNotification) (*alert.PostAlertsOK, err
 }
 
 func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, status AlertStatus, alarmTime int64) (models.LabelSet, models.LabelSet) {
+	if strings.Contains(newAlarm.ApplicationId, "FM") {
+		app.Logger.Info("Alarm '%d' is originated from FM, ignoring ...", alarmId)
+		return models.LabelSet{}, models.LabelSet{}
+	}
+
 	alarmDef := alarm.RICAlarmDefinitions[newAlarm.SpecificProblem]
 	amLabels := models.LabelSet{
 		"status":      string(status),
@@ -338,6 +347,7 @@ func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, st
 		"identifying_info": newAlarm.IdentifyingInfo,
 		"additional_info":  newAlarm.AdditionalInfo,
 		"description":      fmt.Sprintf("%s:%s", newAlarm.IdentifyingInfo, newAlarm.AdditionalInfo),
+		"summary":          newAlarm.IdentifyingInfo,
 		"instructions":     alarmDef.OperationInstructions,
 		"timestamp":        fmt.Sprintf("%s", time.Unix(0, alarmTime).Format("02/01/2006, 15:04:05")),
 	}
@@ -351,9 +361,13 @@ func (a *AlarmManager) NewAlertmanagerClient() *client.Alertmanager {
 }
 
 func (a *AlarmManager) PostAlert(amLabels, amAnnotations models.LabelSet) (*alert.PostAlertsOK, error) {
+	if len(amLabels) == 0 || len(amAnnotations) == 0 {
+		return &alert.PostAlertsOK{}, nil
+	}
+
 	pa := &models.PostableAlert{
 		Alert: models.Alert{
-			GeneratorURL: strfmt.URI(""),
+			GeneratorURL: strfmt.URI("http://service-ricplt-alarmmanager-http.ricplt:8080/ric/v1/alarms"),
 			Labels:       amLabels,
 		},
 		Annotations: amAnnotations,
@@ -363,9 +377,89 @@ func (a *AlarmManager) PostAlert(amLabels, amAnnotations models.LabelSet) (*aler
 	app.Logger.Info("Posting alerts: labels: %+v, annotations: %+v", amLabels, amAnnotations)
 	ok, err := a.NewAlertmanagerClient().Alert.PostAlerts(alertParams)
 	if err != nil {
-		app.Logger.Error("Posting alerts to '%s/%s' failed with error: %v", a.amHost, a.amBaseUrl, err)
+		app.Logger.Error("Posting alerts to '%s/%s' failed: %v", a.amHost, a.amBaseUrl, err)
 	}
 	return ok, err
+}
+
+func (a *AlarmManager) GetAlerts() (*alert.GetAlertsOK, error) {
+	active := true
+	alertParams := alert.NewGetAlertsParams()
+	alertParams.Active = &active
+	resp, err := a.NewAlertmanagerClient().Alert.GetAlerts(alertParams)
+	if err != nil {
+		app.Logger.Error("Getting alerts from '%s/%s' failed: %v", a.amHost, a.amBaseUrl, err)
+		return resp, nil
+	}
+	app.Logger.Info("GetAlerts: %+v", resp)
+
+	return resp, err
+}
+
+func (a *AlarmManager) ProcessAlerts() {
+	resp, err := a.GetAlerts()
+	if err != nil || resp == nil {
+		app.Logger.Error("Getting alerts from '%s/%s' failed: %v", a.amHost, a.amBaseUrl, err)
+		return
+	}
+
+	var buildAlarm = func(alert *models.GettableAlert) alarm.Alarm {
+		a := alarm.Alarm{ManagedObjectId: "SEP", ApplicationId: "FM"}
+
+		if v, ok := alert.Alert.Labels["specific_problem"]; ok {
+			sp, _ := strconv.Atoi(v)
+			a.SpecificProblem = sp
+		}
+
+		if v, ok := alert.Alert.Labels["severity"]; ok {
+			a.PerceivedSeverity = alarm.Severity(fmt.Sprint(v))
+		}
+
+		if v, ok := alert.Alert.Labels["name"]; ok {
+			a.AdditionalInfo = v
+		}
+
+		if v, ok := alert.Annotations["description"]; ok {
+			a.IdentifyingInfo = v
+		}
+
+		return a
+	}
+
+	// Remove cleared alerts first
+	for _, m := range a.activeAlarms {
+		if m.ApplicationId != "FM" {
+			continue
+		}
+
+		found := false
+		for _, alert := range resp.Payload {
+			v, ok := alert.Alert.Labels["service"]
+			if !ok || !strings.Contains(v, "FM") {
+				continue
+			}
+
+			a := buildAlarm(alert)
+			if m.ManagedObjectId == a.ManagedObjectId && m.ApplicationId == a.ApplicationId &&
+				m.SpecificProblem == a.SpecificProblem && m.IdentifyingInfo == a.IdentifyingInfo {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			m.AlarmAction = alarm.AlarmActionClear
+			go a.ProcessAlarm(&m)
+		}
+	}
+
+	for _, alert := range resp.Payload {
+		v, ok := alert.Alert.Labels["service"]
+		if ok && strings.Contains(v, "FM") {
+			m := alarm.AlarmMessage{Alarm: buildAlarm(alert), AlarmAction: alarm.AlarmActionRaise, AlarmTime: time.Now().UnixNano()}
+			go a.ProcessAlarm(&AlarmNotification{m, alarm.AlarmDefinition{}})
+		}
+	}
 }
 
 func (a *AlarmManager) StatusCB() bool {
