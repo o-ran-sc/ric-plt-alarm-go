@@ -27,7 +27,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"github.com/stretchr/testify/assert"
 )
 

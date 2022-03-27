@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	app "gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/gorilla/mux"
 )
@@ -252,17 +252,26 @@ func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if b, err := json.Marshal(a.activeAlarms); err == nil {
+	if b, err := json.MarshalIndent(a.activeAlarms, "", "    "); err == nil {
 		if err := app.Util.WriteToFile(baseDir+"active_alarms.json", string(b)); err != nil {
 			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
 		}
 	}
 
-	if b, err := json.Marshal(a.alarmHistory); err == nil {
+	if b, err := json.MarshalIndent(a.alarmHistory, "", "    "); err == nil {
 		if err := app.Util.WriteToFile(baseDir+"alarm_history.json", string(b)); err != nil {
 			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
+		}
+	}
+
+	if alerts, err := a.GetAlerts(); err == nil {
+		if b, err := json.MarshalIndent(alerts, "", "    "); err == nil {
+			if err := app.Util.WriteToFile(baseDir+"alerts.json", string(b)); err != nil {
+				app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
+				return
+			}
 		}
 	}
 
@@ -270,7 +279,7 @@ func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request
 	ac.MaxActiveAlarms = a.maxActiveAlarms
 	ac.MaxAlarmHistory = a.maxAlarmHistory
 
-	if b, err := json.Marshal(ac); err == nil {
+	if b, err := json.MarshalIndent(ac, "", "    "); err == nil {
 		if err := app.Util.WriteToFile(baseDir+"alarm_config.json", string(b)); err != nil {
 			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return
@@ -281,7 +290,7 @@ func (a *AlarmManager) SymptomDataHandler(w http.ResponseWriter, r *http.Request
 	for _, alarmDefinition := range alarm.RICAlarmDefinitions {
 		ad.AlarmDefinitions = append(ad.AlarmDefinitions, alarmDefinition)
 	}
-	if b, err := json.Marshal(ad); err == nil {
+	if b, err := json.MarshalIndent(ad, "", "    "); err == nil {
 		if err := app.Util.WriteToFile(baseDir+"alarm_defs.json", string(b)); err != nil {
 			app.Resource.SendSymptomDataError(w, r, "writeToFile failed: "+err.Error())
 			return

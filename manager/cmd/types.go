@@ -23,7 +23,7 @@ package main
 import (
 	"sync"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 )
 
 type AlarmManager struct {

@@ -36,7 +36,7 @@ import (
 	"testing"
 	"time"
 
-	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm"
+	"gerrit.o-ran-sc.org/r/ric-plt/alarm-go/alarm"
 	"gerrit.o-ran-sc.org/r/ric-plt/xapp-frame/pkg/xapp"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/alertmanager/api/v2/models"
