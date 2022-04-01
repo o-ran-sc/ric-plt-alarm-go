@@ -352,6 +352,14 @@ func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, st
 		"timestamp":        fmt.Sprintf("%s", time.Unix(0, alarmTime).Format("02/01/2006, 15:04:05")),
 	}
 
+	amLabels["alertname"] = fmt.Sprintf("%d:%s", newAlarm.SpecificProblem, alarmDef.AlarmText)
+	amLabels["id"] = fmt.Sprintf("%d", alarmId)
+	amLabels["event_type"] = alarmDef.EventType
+	amAnnotations["service"] = fmt.Sprintf("%s/%s", newAlarm.ManagedObjectId, newAlarm.ApplicationId)
+	amAnnotations["summary"] = fmt.Sprintf("%d", newAlarm.SpecificProblem)
+	amAnnotations["clearAlertName"] =  fmt.Sprintf("%d:%s", newAlarm.SpecificProblem, alarmDef.AlarmText)
+	amAnnotations["clearDescription"] = fmt.Sprintf("%s:%s", newAlarm.IdentifyingInfo, newAlarm.AdditionalInfo)
+
 	return amLabels, amAnnotations
 }
 
