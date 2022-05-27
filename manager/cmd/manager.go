@@ -528,7 +528,7 @@ func (a *AlarmManager) ReadAlarmInfoFromPersistentVolume() {
 	var alarmpersistentinfo AlarmPersistentInfo
 	byteValue, rerr := ioutil.ReadFile(a.alarmInfoPvFile)
 	if rerr != nil {
-		app.Logger.Error("ararminfo.json file read error %v", rerr)
+		app.Logger.Info("Unable to read alarminfo.json : %v", rerr)
 	} else {
 		err := json.Unmarshal(byteValue, &alarmpersistentinfo)
 		if err != nil {
