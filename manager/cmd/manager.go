@@ -582,6 +582,7 @@ func (a *AlarmManager) Run(sdlcheck bool, ttlInterval int) {
 
 	a.ReadAlarmInfoFromPersistentVolume()
 
+    time.Sleep(8 * time.Second)
 	app.RunWithParams(a, sdlcheck)
 }
 
