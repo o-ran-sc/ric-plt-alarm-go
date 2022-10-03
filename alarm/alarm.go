@@ -46,9 +46,10 @@ import "C"
 // The identities are used when raising/clearing alarms, unless provided by the applications.
 func InitAlarm(mo, id string) (*RICAlarm, error) {
 	r := &RICAlarm{
-		moId:       mo,
-		appId:      id,
-		managerUrl: ALARM_MANAGER_HTTP_URL,
+		moId:        mo,
+		appId:       id,
+		managerUrl:  ALARM_MANAGER_HTTP_URL,
+		rmrEndpoint: ALARM_MANAGER_RMR_URL,
 	}
 
 	if os.Getenv("ALARM_MANAGER_URL") != "" {
@@ -59,16 +60,19 @@ func InitAlarm(mo, id string) (*RICAlarm, error) {
 		r.managerUrl = "http://127.0.0.1:8080"
 	}
 
-	rmrservname := os.Getenv("ALARM_MGR_SERVICE_NAME")
-	rmrservport := os.Getenv("ALARM_MGR_SERVICE_PORT")
-
-	if rmrservname != "" && rmrservport != "" {
-		go InitRMR(r, rmrservname+":"+rmrservport)
-	} else if namespace != "" {
-		go InitRMR(r, ALARM_MANAGER_RMR_URL)
-	} else {
-		go InitRMR(r, "")
+	if os.Getenv("ALARM_MANAGER_SERVICE_NAME") != "" && os.Getenv("ALARM_MANAGER_SERVICE_PORT") != "" {
+		r.rmrEndpoint = fmt.Sprintf("%s:%s", os.Getenv("ALARM_MANAGER_SERVICE_NAME"), os.Getenv("ALARM_MANAGER_SERVICE_PORT"))
 	}
+
+	if os.Getenv("ALARM_IF_RMR") == "" {
+		if r.moId == "my-pod" {
+			r.rmrEndpoint = "127.0.0.1:4560"
+		} else if r.moId == "my-pod-lib" {
+			r.rmrEndpoint = "127.0.0.1:4588"
+		}
+	}
+
+	go InitRMR(r)
 
 	return r, nil
 }
@@ -146,6 +150,32 @@ func (r *RICAlarm) AlarmString(a AlarmMessage) string {
 	return fmt.Sprintf(s, a.ManagedObjectId, a.ApplicationId, a.SpecificProblem, a.PerceivedSeverity, a.IdentifyingInfo)
 }
 
+func (r *RICAlarm) sendAlarmUpdateReqWithHttp(payload []byte) error {
+	url := fmt.Sprintf("%s/%s", r.managerUrl, "ric/v1/alarms")
+	resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
+	if err != nil || resp == nil {
+		return fmt.Errorf("HttpError=Post failed with error: %v", err)
+	}
+	log.Printf("Alarm posted to %s [status=%d]", url, resp.StatusCode)
+	return nil
+}
+
+func (r *RICAlarm) sendAlarmUpdateReqWithRmr(payload []byte) error {
+	if r.rmrCtx == nil || !r.rmrReady {
+		return fmt.Errorf("RmrError=rmr not ready")
+	}
+	datap := C.CBytes(payload)
+	defer C.free(datap)
+	meid := C.CString("ric")
+	defer C.free(unsafe.Pointer(meid))
+
+	if state := C.rmrSend(r.rmrCtx, RIC_ALARM_UPDATE, datap, C.int(len(payload)), meid); state != C.RMR_OK {
+		return errors.New(fmt.Sprintf("RmrError=rmrSend failed with error: %d", state))
+	}
+	log.Printf("Alarm sent via rmr to %s", r.rmrEndpoint)
+	return nil
+}
+
 func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 
 	payload, err := json.Marshal(a)
@@ -155,27 +185,22 @@ func (r *RICAlarm) sendAlarmUpdateReq(a AlarmMessage) error {
 	}
 	log.Println("Sending alarm: ", fmt.Sprintf("%s", payload))
 
-	if r.rmrCtx == nil || !r.rmrReady {
-		url := fmt.Sprintf("%s/%s", r.managerUrl, "ric/v1/alarms")
-		resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
-		if err != nil || resp == nil {
-			return fmt.Errorf("Unable to send alarm: %v", err)
+	// --
+	// Try rmr sending
+	// --
+	err = r.sendAlarmUpdateReqWithRmr(payload)
+
+	// --
+	// Try http posting if rmr is not done for some reason: rmrSend error, rmr not initialized yet etc.
+	// --
+	if err != nil {
+		if httperr := r.sendAlarmUpdateReqWithHttp(payload); httperr != nil {
+			err = fmt.Errorf("%s and  %s", err.Error(), httperr.Error())
+		} else {
+			err = nil
 		}
-		log.Printf("Alarm posted to %s [status=%d]", url, resp.StatusCode)
-		return nil
 	}
-
-	datap := C.CBytes(payload)
-	defer C.free(datap)
-	meid := C.CString("ric")
-	defer C.free(unsafe.Pointer(meid))
-
-	if state := C.rmrSend(r.rmrCtx, RIC_ALARM_UPDATE, datap, C.int(len(payload)), meid); state != C.RMR_OK {
-		log.Println("rmrSend failed with error: ", state)
-		return errors.New(fmt.Sprintf("rmrSend failed with error: %d", state))
-	}
-
-	return nil
+	return err
 }
 
 func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
@@ -189,17 +214,9 @@ func (r *RICAlarm) ReceiveMessage(cb func(AlarmMessage)) error {
 	return errors.New("rmrRcv failed!")
 }
 
-func InitRMR(r *RICAlarm, endpoint string) error {
+func InitRMR(r *RICAlarm) error {
 	// Setup static RT for alarm system
-	if endpoint == "" {
-		if r.moId == "my-pod" {
-			endpoint = "127.0.0.1:4560"
-		} else if r.moId == "my-pod-lib" {
-			endpoint = "127.0.0.1:4588"
-		}
-	}
-
-	alarmRT := fmt.Sprintf("newrt|start\nrte|13111|%s\nnewrt|end\n", endpoint)
+	alarmRT := fmt.Sprintf("newrt|start\nrte|13111|%s\nnewrt|end\n", r.rmrEndpoint)
 	alarmRTFile := "/tmp/alarm.rt"
 
 	if err := ioutil.WriteFile(alarmRTFile, []byte(alarmRT), 0644); err != nil {

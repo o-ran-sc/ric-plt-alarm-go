@@ -76,12 +76,13 @@ type AlarmConfigParams struct {
 
 // RICAlarm is an alarm instance
 type RICAlarm struct {
-	moId       string
-	appId      string
-	managerUrl string
-	rmrCtx     unsafe.Pointer
-	rmrReady   bool
-	mutex      sync.Mutex
+	moId        string
+	appId       string
+	managerUrl  string
+	rmrEndpoint string
+	rmrCtx      unsafe.Pointer
+	rmrReady    bool
+	mutex       sync.Mutex
 }
 
 const (
