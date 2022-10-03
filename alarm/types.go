@@ -21,6 +21,8 @@
 package alarm
 
 import (
+	"fmt"
+	"os"
 	"sync"
 	"unsafe"
 )
@@ -74,12 +76,13 @@ type AlarmConfigParams struct {
 
 // RICAlarm is an alarm instance
 type RICAlarm struct {
-	moId       string
-	appId      string
-	managerUrl string
-	rmrCtx     unsafe.Pointer
-	rmrReady   bool
-	mutex      sync.Mutex
+	moId        string
+	appId       string
+	managerUrl  string
+	rmrEndpoint string
+	rmrCtx      unsafe.Pointer
+	rmrReady    bool
+	mutex       sync.Mutex
 }
 
 const (
@@ -106,3 +109,9 @@ type AlarmDefinition struct {
 
 var RICAlarmDefinitions map[int]*AlarmDefinition
 var RICPerfAlarmObjects map[int]*Alarm
+
+var (
+	namespace                     = os.Getenv("PLT_NAMESPACE")
+	ALARM_MANAGER_HTTP_URL string = fmt.Sprintf("http://service-%s-alarmmanager-http.%s:8080", namespace, namespace)
+	ALARM_MANAGER_RMR_URL  string = fmt.Sprintf("service-%s-alarmmanager-rmr.%s:4560", namespace, namespace)
+)
