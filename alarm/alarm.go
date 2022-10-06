@@ -169,7 +169,7 @@ func (r *RICAlarm) sendAlarmUpdateReqWithRmr(payload []byte) error {
 	defer C.free(unsafe.Pointer(meid))
 
 	if state := C.rmrSend(r.rmrCtx, RIC_ALARM_UPDATE, datap, C.int(len(payload)), meid); state != C.RMR_OK {
-		return errors.New(fmt.Sprintf("RmrError=rmrSend failed with error: %d", state))
+		return errors.New(fmt.Sprintf("RmrError=rmrSend via %s failed with error: %d", r.rmrEndpoint, state))
 	}
 	log.Printf("Alarm sent via rmr to %s", r.rmrEndpoint)
 	return nil
