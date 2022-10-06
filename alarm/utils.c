@@ -40,7 +40,13 @@ void * rmrInit(void) {
 
 int rmrSend(void *mrc, int mtype, void *payload, int payload_len, char *meid) {
     int retry_count = 0;
-    rmr_mbuf_t *sbuf = rmr_alloc_msg(mrc, 1024);
+    rmr_mbuf_t *sbuf = 0;
+
+    if (payload_len > 1024) {
+        sbuf = rmr_alloc_msg(mrc, payload_len);
+    } else {
+        sbuf = rmr_alloc_msg(mrc, 1024);
+    }
 
     sbuf->mtype = mtype;
     sbuf->sub_id = RMR_VOID_SUBID;

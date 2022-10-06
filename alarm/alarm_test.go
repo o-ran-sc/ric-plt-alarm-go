@@ -63,6 +63,26 @@ func TestAlarmClearSuccess(t *testing.T) {
 	assert.Nil(t, err, "clear failed")
 }
 
+func TestAlarmRaiseSuccessLong(t *testing.T) {
+	ainfo := ""
+	for i := 1; i <= 2024; i++ {
+		ainfo += "a"
+	}
+	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, ainfo, "eth 0 1")
+	err := alarmer.Raise(a)
+	assert.Nil(t, err, "raise failed")
+}
+
+func TestAlarmClearSuccessLong(t *testing.T) {
+	ainfo := ""
+	for i := 1; i <= 2024; i++ {
+		ainfo += "a"
+	}
+	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, ainfo, "eth 0 1")
+	err := alarmer.Clear(a)
+	assert.Nil(t, err, "clear failed")
+}
+
 func TestAlarmReraiseSuccess(t *testing.T) {
 	a := alarmer.NewAlarm(1234, alarm.SeverityMajor, "Some App data", "eth 0 1")
 
