@@ -22,11 +22,11 @@
 echo "--> build_ubuntu.sh starts"
 
 # Install RMR from deb packages at packagecloud.io
-rmr=rmr_4.8.5_amd64.deb
+rmr=rmr_4.9.0_amd64.deb
 wget --content-disposition  https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/$rmr/download.deb
 sudo dpkg -i $rmr
 rm $rmr
-rmrdev=rmr-dev_4.8.5_amd64.deb
+rmrdev=rmr-dev_4.9.0_amd64.deb
 wget --content-disposition https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/$rmrdev/download.deb
 sudo dpkg -i $rmrdev
 rm $rmrdev
@@ -35,7 +35,7 @@ rm $rmrdev
 export LD_LIBRARY_PATH=/usr/local/lib
 
 # Installing the go version
-GOLANG_VERSION=1.18.1
+GOLANG_VERSION=1.20.4
 wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
         && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
 PATH="/usr/local/go/bin:${PATH}"

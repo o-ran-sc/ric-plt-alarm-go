@@ -755,7 +755,7 @@ func getAlerts(flags map[string]commando.FlagValue) (*alert.GetAlertsOK, error) 
 	return resp, err
 }
 
-func newAlertManagerClient(amAddress string, amBaseUrl string, amSchemes []string) *client.Alertmanager {
+func newAlertManagerClient(amAddress string, amBaseUrl string, amSchemes []string) *client.AlertmanagerAPI {
 	cr := clientruntime.New(amAddress, amBaseUrl, amSchemes)
 	return client.New(cr, strfmt.Default)
 }

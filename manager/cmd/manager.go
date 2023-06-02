@@ -355,7 +355,7 @@ func (a *AlarmManager) GenerateAlertLabels(alarmId int, newAlarm alarm.Alarm, st
 	return amLabels, amAnnotations
 }
 
-func (a *AlarmManager) NewAlertmanagerClient() *client.Alertmanager {
+func (a *AlarmManager) NewAlertmanagerClient() *client.AlertmanagerAPI {
 	cr := clientruntime.New(a.amHost, a.amBaseUrl, a.amSchemes)
 	return client.New(cr, strfmt.Default)
 }
@@ -582,8 +582,8 @@ func (a *AlarmManager) Run(sdlcheck bool, ttlInterval int) {
 
 	a.ReadAlarmInfoFromPersistentVolume()
 
-    time.Sleep(8 * time.Second)
-	app.RunWithParams(a, sdlcheck)
+	time.Sleep(8 * time.Second)
+	app.RunWithRunParams(a, app.RunParams{SdlCheck: sdlcheck, DisableAlarmClient: true})
 }
 
 func NewAlarmManager(amHost string, alertInterval int, clearAlarm bool) *AlarmManager {
