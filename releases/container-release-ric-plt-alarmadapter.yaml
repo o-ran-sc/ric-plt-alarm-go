@@ -1,11 +1,11 @@
 ---
 distribution_type: container
-container_release_tag: 0.5.14
+container_release_tag: 0.5.15
 container_pull_registry: nexus3.o-ran-sc.org:10004
 container_push_registry: nexus3.o-ran-sc.org:10002
 project: ric-plt/alarm-go
-ref: 81503dbb098948e67e2b6f17b705dcc169abe10c
+ref: a3277f3cb718078c5593aca7eba22517bac16dc6
 containers:
     - name: ric-plt-alarmmanager
-      version: 0.5.14
+      version: 0.5.15
 
