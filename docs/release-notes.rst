@@ -43,7 +43,6 @@ Version history
 Summary
 -------
 
-
 Release Data
 ------------
 
