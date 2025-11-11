@@ -35,7 +35,7 @@ rm $rmrdev
 export LD_LIBRARY_PATH=/usr/local/lib
 
 # Installing the go version
-GOLANG_VERSION=1.20.4
+GOLANG_VERSION=1.22.5
 wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
         && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
 PATH="/usr/local/go/bin:${PATH}"

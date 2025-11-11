@@ -18,7 +18,7 @@
 #   platform project (RICP).
 #==================================================================================
 
-FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu20-c-go:1.0.0 as ubuntu-alarm-manager
+FROM nexus3.o-ran-sc.org:10002/o-ran-sc/bldr-ubuntu22-c-go:1.0.0 as ubuntu-alarm-manager
 
 RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certificates
 
@@ -26,7 +26,7 @@ RUN apt update && apt install --reinstall -y ca-certificates && update-ca-certif
 RUN apt update && apt install -y iputils-ping net-tools curl sudo build-essential
 
 # Installing the go version
-ENV GOLANG_VERSION 1.20.4
+ENV GOLANG_VERSION 1.22.5
 RUN wget --quiet https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
         && tar xvzf go$GOLANG_VERSION.linux-amd64.tar.gz -C /usr/local
 ENV PATH="/usr/local/go/bin:${PATH}"
@@ -41,7 +41,7 @@ WORKDIR "/go/src/am"
 RUN ./build/build_ubuntu.sh
 
 # Final, executable and deployable container
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 COPY --from=ubuntu-alarm-manager /go/src/am/build/run.sh /
 COPY --from=ubuntu-alarm-manager /go/src/am/manager/alarm-manager /

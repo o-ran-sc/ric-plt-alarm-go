@@ -1,6 +1,6 @@
 module gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git
 
-go 1.18
+go 1.22
 
 replace gerrit.o-ran-sc.org/r/ric-plt/alarm-go.git/alarm => ./alarm/
 
